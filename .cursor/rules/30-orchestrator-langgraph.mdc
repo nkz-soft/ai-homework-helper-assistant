@@ -1,0 +1,45 @@
+---
+description: LangGraph orchestration rules: state shape, node responsibilities, evidence discipline.
+globs: ["packages/orchestrator/**"]
+alwaysApply: false
+---
+
+# Orchestrator (LangGraph) Rules
+
+## Single typed state
+- Keep one canonical state model (TypedDict or Pydantic).
+- State must include at least:
+  - question, student_context
+  - mode (coach / solution_allowed / hint_only)
+  - subject, intent
+  - tool_budget
+  - retrieved_items[]
+  - evidence[]
+  - draft_answer, final_answer
+  - safety_flags
+
+## Node responsibilities
+Nodes must be single-purpose:
+1) classify
+2) plan
+3) retrieve (MCP calls; parallel where possible)
+4) normalize (raw -> evidence)
+5) safety (honesty gating + prompt-injection filtering)
+6) synthesize (structured answer)
+7) self_check (claims supported by evidence)
+8) finalize (format + sources)
+
+## Evidence schema (required)
+Each evidence item contains:
+- claim (1 sentence)
+- support (short excerpt/summary)
+- source (wikipedia | stackoverflow | textbooks)
+- locator (url/title/id/chunk_id)
+- license_note? (optional)
+
+## Answer structure (default)
+1) Concept explanation
+2) Step-by-step plan
+3) Example (analogous if exam-like)
+4) Common mistakes / checks
+5) Sources

@@ -1,0 +1,54 @@
+---
+description: Release rules: SemVer, CHANGELOG (Keep a Changelog), GitHub Releases workflow, tags, release notes.
+globs: ["CHANGELOG.md", "pyproject.toml", "apps/**", "packages/**", ".github/workflows/**", "docs/**"]
+alwaysApply: false
+---
+
+# Release & Versioning (SemVer + Changelog + GitHub Releases)
+
+## 1) Versioning standard: SemVer
+- Use Semantic Versioning: `MAJOR.MINOR.PATCH`.
+- Bump rules:
+  - MAJOR: backward-incompatible changes
+  - MINOR: backward-compatible features
+  - PATCH: backward-compatible bug fixes
+- Never modify already published releases; fix forward with a new version.
+
+## 2) Tags and release naming
+- Git tag format: `vX.Y.Z` (e.g., `v0.3.1`).
+- GitHub Release title should match the tag (`vX.Y.Z`).
+- Pre-releases use SemVer pre-release syntax (`v1.2.0-rc.1`).
+
+## 3) Changelog policy (Keep a Changelog)
+- Maintain a human-readable `CHANGELOG.md`.
+- Use Keep a Changelog structure with:
+  - `## [Unreleased]`
+  - per-release sections ordered chronologically
+  - categories like Added/Changed/Deprecated/Removed/Fixed/Security
+- Every user-facing change must appear in the changelog (or be explicitly marked "internal/no user impact").
+
+## 4) Release workflow (GitHub Actions)
+Choose ONE approach (don’t mix both without ADR):
+
+### A) Tag-driven release (manual version bump, automated GitHub Release)
+- Developer updates version + changelog, merges to main, then tags `vX.Y.Z`.
+- CI on tag push creates a GitHub Release and attaches release notes:
+  - Either use GitHub “auto-generated release notes”
+  - Or use a release action to publish release with a prepared body
+
+### B) Automated semantic releases (conventional commits -> auto bump + notes)
+- CI derives next version from commit messages, generates notes/changelog, creates tag and GitHub Release automatically.
+- Requires strict commit convention and tooling; document it clearly.
+
+## 5) Release notes rules
+- Release notes must include:
+  - highlights (top 3–7 items)
+  - breaking changes (if any) with migration notes
+  - links to issues/PRs where possible
+- Keep notes concise; do not paste large verbatim content from external sources.
+
+## 6) Definition of "done" for a release PR
+- Version updated in the canonical place (project standard)
+- `CHANGELOG.md` updated with relevant entries
+- CI green
+- Tag/release created following the chosen approach

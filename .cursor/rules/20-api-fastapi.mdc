@@ -1,0 +1,31 @@
+---
+description: Rules for the Host API app (FastAPI): routing, models, error schema, DI, logging.
+globs: ["apps/assistant_api/**"]
+alwaysApply: false
+---
+
+# API (FastAPI) Rules
+
+## Routing
+- Version endpoints under `/api/v1`.
+- Keep route handlers thin: validation + orchestration call + mapping to response.
+
+## Models
+- Use Pydantic models for request/response; no bare dicts in public API.
+- Provide stable response schema (avoid breaking changes).
+
+## Errors
+- Use consistent error envelope:
+  - `error.code`
+  - `error.message`
+  - `error.details?`
+  - `trace_id?`
+
+## Logging & observability
+- Structured logs with request_id/trace_id.
+- Redact secrets.
+- Record: tool budget usage, retrieved docs count, evidence count.
+
+## Async & IO
+- API path is async-first.
+- Don’t block the event loop; offload heavy work if needed.
