@@ -1,0 +1,52 @@
+---
+description: Python code style rules (ruff/black/mypy): formatting, linting, typing, config conventions.
+globs: ["**/*.py", "**/*.pyi", "pyproject.toml", "ruff.toml", ".ruff.toml", "mypy.ini", ".github/workflows/**"]
+alwaysApply: false
+---
+
+# Python Code Style (ruff / black / mypy)
+
+## 1) Single source of truth: configuration
+- Keep Python tooling config in `pyproject.toml` whenever possible.
+- Ruff may be configured via `pyproject.toml`, `ruff.toml`, or `.ruff.toml`; prefer `pyproject.toml` unless repo already uses a dedicated ruff file.
+- Black configuration must be in TOML (`pyproject.toml`).
+
+## 2) Formatter policy
+- Prefer **one** formatter strategy:
+  - Either `ruff format` as the primary formatter, OR `black` as the primary formatter.
+- Do not introduce additional formatters (yapf/autopep8) without an ADR.
+- Ensure line-length is consistent across tools (Black/Ruff) to avoid conflicting diffs.
+
+## 3) Ruff policy (lint + optional formatting)
+- Run (locally/CI):
+  - `ruff check .` (lint)
+  - `ruff format .` (format) if the repo uses ruff formatter
+- Prefer autofix for safe rules; avoid aggressive/unsafe fixes unless explicitly requested.
+- Avoid enabling stylistic rules that conflict with the formatter; let formatter own formatting.
+
+## 4) Black policy (if Black is used)
+- Run:
+  - `black .`
+- Keep Black settings minimal (opinionated by design).
+- Default `line-length = 88` unless the repo already standardized another value.
+
+## 5) Imports & sorting
+- If using Ruff, keep import sorting under Ruff’s control (do not add separate isort config unless already present).
+- Avoid manual import sorting.
+
+## 6) Typing policy (mypy)
+- Type hints required for all new public functions/classes.
+- Prefer returning concrete types over `Any`; keep `Any` quarantined and justified.
+- Prefer progressive strictness:
+  - Start with strong warnings (e.g., `warn_unused_ignores`, `warn_return_any`), then tighten module-by-module.
+- Use per-module overrides for third-party libraries lacking stubs (document why).
+
+## 7) Patterns to follow
+- Prefer `pathlib` over raw string paths.
+- Prefer `pydantic` models for API/state validation where applicable.
+- Prefer explicit error handling over broad `except Exception`.
+
+## 8) Definition of "done" for Python changes
+- `ruff check` passes
+- formatting passes (ruff format or black, depending on project choice)
+- mypy passes for touched modules (or justified ignore with comment + issue link)

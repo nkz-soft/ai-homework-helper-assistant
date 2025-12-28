@@ -1,0 +1,29 @@
+---
+description: Textbooks ingestion + Textbooks MCP server rules (RAG): idempotent ingestion, metadata, citation.
+globs: ["packages/content_pipeline/**"]
+alwaysApply: false
+---
+
+# Textbooks (RAG) Rules
+
+## Ingestion must be idempotent
+- Re-running ingestion should not duplicate records.
+- Persist stable chunk IDs and metadata.
+
+## Chunk metadata (required)
+Store per chunk:
+- book title, edition, author
+- license
+- chapter/section headings
+- page range (if PDF)
+- source path / URL (if applicable)
+
+## MCP server tools (stable surface)
+Expose minimal stable tools:
+- `textbooks.search(query, filters)` -> top chunks + metadata
+- `textbooks.read(chunk_id)` -> content + metadata
+- `textbooks.cite(chunk_id)` -> formatted attribution/licensing info
+
+## Citations
+- Never paste large verbatim sections; summarize + short excerpt if needed.
+- Always return “Sources” locators for textbook-based claims.

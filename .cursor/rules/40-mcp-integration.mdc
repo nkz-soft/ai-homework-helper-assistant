@@ -1,0 +1,32 @@
+---
+description: MCP client wiring, tool calling policy, caching, and contract tests.
+globs: ["packages/mcp_clients/**", "config/mcp_servers*.json", "tests/integration/**"]
+alwaysApply: false
+---
+
+# MCP Integration Rules
+
+## Configuration-driven
+- No hardcoded MCP server endpoints in code.
+- Read MCP servers from `config/mcp_servers.dev.json` / `config/mcp_servers.prod.json`.
+
+## Tool budgets
+- Enforce per-provider budgets (StackOverflow smaller; Wikipedia moderate; textbooks configurable).
+- Prefer: search -> pick top N -> fetch details for N (avoid wide crawling).
+
+## Caching
+- Cache tool outputs keyed by:
+  - provider + tool + normalized args + language/subject
+- TTL must be configurable.
+
+## Contract tests (required)
+For each MCP server:
+- verify expected tools appear in `tools/list`
+- verify `tools/call` returns expected schema
+- verify degraded behavior when server unavailable (graceful fallback)
+
+## Interceptors
+- Use interceptors/middleware for:
+  - audit logs
+  - caching
+  - budget/timeout enforcement

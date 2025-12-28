@@ -1,0 +1,19 @@
+---
+description: Documentation, ADRs, and attribution/licensing rules for Wikipedia/StackOverflow/textbooks.
+globs: ["docs/**", "README.md", "SECURITY.md", "CONTRIBUTING.md"]
+alwaysApply: false
+---
+
+# Docs, ADR, Attribution
+
+## When to write an ADR
+Add `docs/adr/ADR-XXXX.md` when introducing:
+- new MCP server/provider
+- new vector store / embeddings model
+- new caching backend
+- major workflow change (graph nodes, evidence schema)
+
+## Attribution (mandatory)
+- Final answers must include a “Sources” section with URLs/IDs/titles.
+- Do not include large verbatim text. Prefer summaries + short excerpts.
+- Keep a dedicated `docs/attribution.md` describing how we attribute each source.

@@ -1,0 +1,20 @@
+---
+description: Testing & CI rules: unit tests, integration tests, MCP contract tests, no untested features.
+globs: ["tests/**", ".github/workflows/**", "apps/**", "packages/**"]
+alwaysApply: false
+---
+
+# Tests & CI
+
+## No feature without tests
+- Any new behavior must include unit tests and/or integration tests.
+- Exceptions must be explicitly documented in PR description.
+
+## Required test types
+- Unit: normalization, safety gating, evidence formatting.
+- Integration: graph happy paths, degraded paths.
+- MCP contract: tools exist + schema compatibility.
+
+## CI hygiene
+- Keep tests deterministic; avoid network where possible.
+- If tests require MCP servers, provide mocks/fallback for CI or mark as optional with clear docs.
