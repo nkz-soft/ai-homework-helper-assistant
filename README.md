@@ -17,6 +17,18 @@ Next steps:
 - Track implementation tasks in `docs/tasks/`.
 - Fill in configuration placeholders under `src/config/`.
 
+## VS Code Dev Container (no local Python)
+
+Use the Dev Containers extension to develop inside Docker without installing
+Python on your host machine.
+
+1. Install Docker Desktop (or another Docker runtime).
+2. Install the VS Code extension "Dev Containers".
+3. Open this repo in VS Code and run "Dev Containers: Reopen in Container".
+4. Wait for the container to build, then use the integrated terminal.
+
+The container includes Python 3.12 and Node.js (for MCP tools like `npx`).
+
 ## Layout
 
 ```text
