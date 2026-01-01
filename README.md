@@ -29,6 +29,16 @@ Python on your host machine.
 
 The container includes Python 3.12 and Node.js (for MCP tools like `npx`).
 
+## Testing
+
+Set `PYTHONPATH=src` so tests can import project packages under the `src/`
+layout.
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest
+```
+
 ## Layout
 
 ```text
