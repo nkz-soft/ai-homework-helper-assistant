@@ -3,3 +3,4 @@
 ruff==0.14.10
 pytest-cov==6.0.0
 pytest==8.3.4
+mypy==1.18.1
