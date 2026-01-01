@@ -10,6 +10,7 @@ alwaysApply: false
 - Keep Python tooling config in `pyproject.toml` whenever possible.
 - Ruff may be configured via `pyproject.toml`, `ruff.toml`, or `.ruff.toml`; prefer `pyproject.toml` unless repo already uses a dedicated ruff file.
 - Black configuration must be in TOML (`pyproject.toml`).
+- Source root is located in `/src`; treat it as the primary import/module root.
 
 ## 2) Formatter policy
 - Prefer **one** formatter strategy:
