@@ -1,4 +1,4 @@
-# Architecture — Homework Helper (LangChain + LangGraph + MCP)
+# Architecture — Homework Helper (LangGraph + MCP)
 
 This document describes the architecture of a “homework helper” assistant: a student asks a question about a subject, the agent retrieves relevant explanations/examples from Wikipedia, StackOverflow, and optional electronic textbooks, then produces a guided, citation-backed answer.
 
