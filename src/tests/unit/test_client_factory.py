@@ -78,7 +78,10 @@ class McpClientFactoryTests(unittest.TestCase):
                             "wikipedia": {
                                 "transport": "stdio",
                                 "command": "npx",
-                                "args": ["-y", "@modelcontextprotocol/server-wikipedia"],
+                                "args": [
+                                    "-y",
+                                    "@modelcontextprotocol/server-wikipedia",
+                                ],
                             }
                         },
                     }

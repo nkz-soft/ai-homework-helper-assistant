@@ -104,14 +104,11 @@ class McpServerPrompts:
 
 
 class McpClientAdapter(Protocol):
-    def get_tools(self) -> Mapping[str, McpServerTools]:
-        ...
+    def get_tools(self) -> Mapping[str, McpServerTools]: ...
 
-    def get_resources(self) -> Mapping[str, McpServerResources]:
-        ...
+    def get_resources(self) -> Mapping[str, McpServerResources]: ...
 
-    def get_prompts(self) -> Mapping[str, McpServerPrompts]:
-        ...
+    def get_prompts(self) -> Mapping[str, McpServerPrompts]: ...
 
 
 class StaticMcpClientAdapter:
@@ -222,12 +219,15 @@ class McpClientFactory:
                 raise McpConfigError(f"Server '{name}' transport must be a string.")
             if not isinstance(command, str) or not command:
                 raise McpConfigError(f"Server '{name}' command must be a string.")
-            if not isinstance(args, list) or not all(isinstance(arg, str) for arg in args):
+            if not isinstance(args, list) or not all(
+                isinstance(arg, str) for arg in args
+            ):
                 raise McpConfigError(f"Server '{name}' args must be a list of strings.")
             if env is None:
                 env = {}
             if not isinstance(env, dict) or not all(
-                isinstance(key, str) and isinstance(value, str) for key, value in env.items()
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in env.items()
             ):
                 raise McpConfigError(f"Server '{name}' env must be string keys/values.")
 
