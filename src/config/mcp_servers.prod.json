@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "servers": {
+    "wikipedia": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-wikipedia"]
+    },
+    "stackoverflow": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "mcp.stackoverflow.com"],
+      "env": {
+        "STACKOVERFLOW_API_KEY": ""
+      }
+    },
+    "textbooks": {
+      "transport": "stdio",
+      "command": "python",
+      "args": ["-m", "mcp_textbooks_server"],
+      "enabled": false,
+      "env": {
+        "TEXTBOOKS_DATA_PATH": "",
+        "TEXTBOOKS_INDEX_PATH": ""
+      }
+    }
+  }
+}

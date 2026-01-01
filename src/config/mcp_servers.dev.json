@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "servers": {
+    "wikipedia": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-wikipedia"]
+    },
+    "stackoverflow": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "mcp.stackoverflow.com"]
+    },
+    "textbooks": {
+      "transport": "stdio",
+      "command": "python",
+      "args": ["-m", "mcp_textbooks_server"],
+      "enabled": false
+    }
+  }
+}
