@@ -1,6 +1,6 @@
 # ai-homework-helper-assistant
 
-Monorepo scaffold for a homework helper assistant (LangChain + LangGraph + MCP).
+Monorepo scaffold for a homework helper assistant (LangGraph + MCP).
 
 ## Quickstart
 
