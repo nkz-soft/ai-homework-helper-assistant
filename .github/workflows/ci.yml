@@ -59,8 +59,7 @@ jobs:
 
       - name: Publish coverage summary to PR
         if: ${{ github.event_name == 'pull_request' }}
-        uses: dorny/coverage-report-action@v2
+        uses: MishaKav/pytest-coverage-comment@v1
         with:
-          coverage-reporter: cobertura
-          path: coverage.xml
-          fail-on-error: false
+          pytest-coverage-path: coverage.xml
+          title: Coverage Report
