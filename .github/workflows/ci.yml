@@ -57,9 +57,9 @@ jobs:
           name: coverage-xml
           path: coverage.xml
 
-      - name: Publish coverage summary to PR
+      - name: Comment coverage on PR
         if: ${{ github.event_name == 'pull_request' }}
-        uses: MishaKav/pytest-coverage-comment@v1
+        uses: icymi-app/coverage-report-commenter-action@v1
         with:
-          pytest-coverage-path: coverage.xml
-          title: Coverage Report
+          coverage-file: coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
