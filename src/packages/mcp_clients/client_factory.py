@@ -41,7 +41,9 @@ class McpToolHandle:
     timeout_seconds: float
     retry: RetrySettings
 
-    def call(self, arguments: Mapping[str, Any]) -> None:
+    def call(
+        self, arguments: Mapping[str, Any]
+    ) -> Mapping[str, Any] | list[Any] | None:
         raise NotImplementedError("Tool execution requires a concrete MCP adapter.")
 
 

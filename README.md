@@ -1,6 +1,6 @@
 # ai-homework-helper-assistant
 
-Monorepo scaffold for a homework helper assistant (LangChain + LangGraph + MCP).
+Monorepo scaffold for a homework helper assistant (LangGraph + MCP).
 
 ## Quickstart
 
@@ -31,10 +31,11 @@ The container includes Python 3.12 and Node.js (for MCP tools like `npx`).
 
 ## Testing
 
-Set `PYTHONPATH=src` so tests can import project packages under the `src/`
-layout.
+Install dev dependencies from `pyproject.toml`, then set `PYTHONPATH=src` so
+tests can import project packages under the `src/` layout.
 
 ```powershell
+python -m pip install -e ".[dev]"
 $env:PYTHONPATH = "src"
 python -m unittest
 ```
