@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -45,12 +49,11 @@ jobs:
 
       - name: Run tests with pytest and coverage
         run: |
-          pytest --cov=src --cov-report=xml --cov-report=term-missing
+          pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing
 
-      - name: Upload coverage to Codecov (optional)
-        uses: codecov/codecov-action@v4
+      - name: Publish coverage summary to PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: MishaKav/pytest-coverage-comment@v1
         with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          pytest-xml-coverage-path: ./coverage.xml
+          junitxml-path: ./pytest.xml

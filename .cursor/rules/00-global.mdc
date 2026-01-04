@@ -14,6 +14,7 @@ alwaysApply: true
 ## Minimal, safe changes
 - Make the smallest change that solves the task.
 - Prefer incremental refactors with tests over rewrites.
+- Run relevant tests after every change (note if the suite is not runnable yet).
 
 ## No hallucinated integrations
 - Don’t invent tools/endpoints/schemas/config keys.

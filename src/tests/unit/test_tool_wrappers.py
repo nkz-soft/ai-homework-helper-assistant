@@ -6,15 +6,23 @@ from typing import Any, Mapping
 from packages.mcp_clients.tool_wrappers import (
     StackOverflowTimeoutError,
     StackOverflowToolError,
+    WikipediaTimeoutError,
+    WikipediaToolError,
     so_get_content,
     so_search,
     stackoverflow_tools,
+    wikipedia_search,
+    wikipedia_section,
+    wikipedia_summary,
+    wikipedia_tools,
 )
 
 
 class _FakeToolHandle:
-    def __init__(self, tool_name: str, response: Any) -> None:
-        self.server_name = "stackoverflow"
+    def __init__(
+        self, tool_name: str, response: Any, *, server_name: str = "stackoverflow"
+    ) -> None:
+        self.server_name = server_name
         self.tool_name = tool_name
         self.timeout_seconds = 1.0
         self.retry = None
@@ -111,6 +119,106 @@ class ToolWrappersTests(unittest.TestCase):
         with self.assertRaises(StackOverflowTimeoutError):
             so_search(tools, query="foo")
 
+    def test_wikipedia_search_truncates_and_passes_lang(self) -> None:
+        search_handle = _FakeToolHandle(
+            "search",
+            {
+                "items": [
+                    {
+                        "pageid": 42,
+                        "title": "Example",
+                        "snippet": "x" * 20,
+                        "fullurl": "https://en.wikipedia.org/wiki/Example",
+                    }
+                ]
+            },
+            server_name="wikipedia",
+        )
+        summary_handle = _FakeToolHandle(
+            "summary", {"items": []}, server_name="wikipedia"
+        )
+        section_handle = _FakeToolHandle(
+            "section", {"items": []}, server_name="wikipedia"
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=search_handle,
+                summary_handle=summary_handle,
+                section_handle=section_handle,
+            )
+        )
+
+        result = wikipedia_search(
+            tools, query="Example", language="en", limit=3, max_chars=10
+        )
+
+        self.assertEqual(
+            search_handle.calls, [{"query": "Example", "lang": "en", "limit": 3}]
+        )
+        self.assertEqual(result["tool"], "search")
+        self.assertEqual(result["items"][0]["excerpt"], "xxxxxxx...")
+
+    def test_wikipedia_summary_uses_page_arg(self) -> None:
+        summary_handle = _FakeToolHandle(
+            "summary",
+            {"title": "Example", "extract": "content"},
+            server_name="wikipedia",
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=_FakeToolHandle(
+                    "search", {"items": []}, server_name="wikipedia"
+                ),
+                summary_handle=summary_handle,
+                section_handle=_FakeToolHandle(
+                    "section", {"items": []}, server_name="wikipedia"
+                ),
+            )
+        )
+
+        result = wikipedia_summary(tools, page_id_or_title="Example", language=None)
+
+        self.assertEqual(summary_handle.calls, [{"page": "Example"}])
+        self.assertEqual(result["items"][0]["content"], "content")
+
+    def test_wikipedia_section_handles_errors(self) -> None:
+        section_handle = _FakeToolHandle(
+            "section", {"error": "missing"}, server_name="wikipedia"
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=_FakeToolHandle(
+                    "search", {"items": []}, server_name="wikipedia"
+                ),
+                summary_handle=_FakeToolHandle(
+                    "summary", {"items": []}, server_name="wikipedia"
+                ),
+                section_handle=section_handle,
+            )
+        )
+
+        with self.assertRaises(WikipediaToolError):
+            wikipedia_section(tools, page_id_or_title="Example", section="History")
+
+    def test_wikipedia_section_timeout(self) -> None:
+        section_handle = _FakeToolHandle(
+            "section", TimeoutError("boom"), server_name="wikipedia"
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=_FakeToolHandle(
+                    "search", {"items": []}, server_name="wikipedia"
+                ),
+                summary_handle=_FakeToolHandle(
+                    "summary", {"items": []}, server_name="wikipedia"
+                ),
+                section_handle=section_handle,
+            )
+        )
+
+        with self.assertRaises(WikipediaTimeoutError):
+            wikipedia_section(tools, page_id_or_title="Example", section="History")
+
 
 class _FakeTools:
     def __init__(
@@ -124,6 +232,28 @@ class _FakeTools:
             return self._search
         if tool_name == "get_content":
             return self._content
+        raise AssertionError(f"Unexpected tool: {tool_name}")
+
+
+class _FakeWikipediaTools:
+    def __init__(
+        self,
+        *,
+        search_handle: _FakeToolHandle,
+        summary_handle: _FakeToolHandle,
+        section_handle: _FakeToolHandle,
+    ) -> None:
+        self._search = search_handle
+        self._summary = summary_handle
+        self._section = section_handle
+
+    def handle(self, tool_name: str) -> _FakeToolHandle:
+        if tool_name == "search":
+            return self._search
+        if tool_name == "summary":
+            return self._summary
+        if tool_name == "section":
+            return self._section
         raise AssertionError(f"Unexpected tool: {tool_name}")
 
 
