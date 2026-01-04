@@ -198,9 +198,7 @@ class ToolWrappersTests(unittest.TestCase):
         )
 
         with self.assertRaises(WikipediaToolError):
-            wikipedia_section(
-                tools, page_id_or_title="Example", section="History"
-            )
+            wikipedia_section(tools, page_id_or_title="Example", section="History")
 
     def test_wikipedia_section_timeout(self) -> None:
         section_handle = _FakeToolHandle(
@@ -219,9 +217,7 @@ class ToolWrappersTests(unittest.TestCase):
         )
 
         with self.assertRaises(WikipediaTimeoutError):
-            wikipedia_section(
-                tools, page_id_or_title="Example", section="History"
-            )
+            wikipedia_section(tools, page_id_or_title="Example", section="History")
 
 
 class _FakeTools:

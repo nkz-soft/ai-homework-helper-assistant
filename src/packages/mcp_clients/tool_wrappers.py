@@ -205,13 +205,9 @@ def wikipedia_section(
 ) -> WikipediaToolResult:
     raw = _call_wikipedia_tool(
         tools.section,
-        _compact_args(
-            {"page": page_id_or_title, "section": section, "lang": language}
-        ),
+        _compact_args({"page": page_id_or_title, "section": section, "lang": language}),
     )
-    items = _normalize_wikipedia_items(
-        raw, max_chars=max_chars, section=section
-    )
+    items = _normalize_wikipedia_items(raw, max_chars=max_chars, section=section)
     return {
         "source": "wikipedia",
         "tool": "section",
@@ -257,14 +253,10 @@ def _call_wikipedia_tool(
             f"Wikipedia tool '{tool.tool_name}' timed out."
         ) from exc
     except Exception as exc:  # pragma: no cover - defensive for adapter implementations
-        raise WikipediaToolError(
-            f"Wikipedia tool '{tool.tool_name}' failed."
-        ) from exc
+        raise WikipediaToolError(f"Wikipedia tool '{tool.tool_name}' failed.") from exc
 
     if raw is None:
-        raise WikipediaToolError(
-            f"Wikipedia tool '{tool.tool_name}' returned no data."
-        )
+        raise WikipediaToolError(f"Wikipedia tool '{tool.tool_name}' returned no data.")
     if isinstance(raw, list):
         raw = {"items": raw}
     if not isinstance(raw, Mapping):
@@ -316,10 +308,7 @@ def _normalize_wikipedia_items(
     section: str | None = None,
 ) -> list[WikipediaItem]:
     items = (
-        raw.get("items")
-        or raw.get("pages")
-        or raw.get("results")
-        or raw.get("data")
+        raw.get("items") or raw.get("pages") or raw.get("results") or raw.get("data")
     )
     if isinstance(items, Mapping):
         items = [items]
