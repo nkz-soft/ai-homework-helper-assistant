@@ -6,6 +6,9 @@ alwaysApply: false
 
 # Tests & CI
 
+## Run tests after changes
+- Run relevant tests after every change (note if the suite is not runnable yet).
+
 ## No feature without tests
 - Any new behavior must include unit tests and/or integration tests.
 - Exceptions must be explicitly documented in PR description.
