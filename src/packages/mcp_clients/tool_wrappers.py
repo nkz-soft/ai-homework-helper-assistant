@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping, Sequence, TypedDict
 
 from .client_factory import McpServerTools, McpToolHandle
+from .interceptors.audit import audit_tool_call
 
 
 class StackOverflowToolError(RuntimeError):
@@ -219,7 +220,7 @@ def wikipedia_section(
 
 def _call_tool(tool: McpToolHandle, arguments: Mapping[str, Any]) -> Mapping[str, Any]:
     try:
-        raw = tool.call(arguments)
+        raw = audit_tool_call(tool, arguments)
     except TimeoutError as exc:
         raise StackOverflowTimeoutError(
             f"StackOverflow tool '{tool.tool_name}' timed out."
@@ -247,7 +248,7 @@ def _call_wikipedia_tool(
     tool: McpToolHandle, arguments: Mapping[str, Any]
 ) -> Mapping[str, Any]:
     try:
-        raw = tool.call(arguments)
+        raw = audit_tool_call(tool, arguments)
     except TimeoutError as exc:
         raise WikipediaTimeoutError(
             f"Wikipedia tool '{tool.tool_name}' timed out."
