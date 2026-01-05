@@ -64,6 +64,59 @@ class McpClientFactoryTests(unittest.TestCase):
             with self.assertRaises(McpConfigError):
                 McpClientFactory(config_path=config_path)
 
+    def test_raises_for_non_object_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "mcp_servers.test.json"
+            path.write_text(json.dumps(["bad"]), encoding="utf-8")
+            with self.assertRaises(McpConfigError):
+                McpClientFactory(config_path=path)
+
+    def test_raises_for_invalid_servers_container(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = self._write_config(
+                Path(temp_dir),
+                {"version": 1, "servers": ["bad"]},
+            )
+            with self.assertRaises(McpConfigError):
+                McpClientFactory(config_path=config_path)
+
+    def test_raises_for_invalid_env_and_args(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = self._write_config(
+                Path(temp_dir),
+                {
+                    "version": 1,
+                    "servers": {
+                        "bad_server": {
+                            "transport": "stdio",
+                            "command": "npx",
+                            "args": ["-y", 1],
+                        }
+                    },
+                },
+            )
+            with self.assertRaises(McpConfigError):
+                McpClientFactory(config_path=config_path)
+
+    def test_env_none_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = self._write_config(
+                Path(temp_dir),
+                {
+                    "version": 1,
+                    "servers": {
+                        "wikipedia": {
+                            "transport": "stdio",
+                            "command": "npx",
+                            "args": ["-y", "@modelcontextprotocol/server-wikipedia"],
+                            "env": None,
+                        }
+                    },
+                },
+            )
+            factory = McpClientFactory(config_path=config_path)
+            self.assertEqual(set(factory.get_tools().keys()), {"wikipedia"})
+
     def test_default_config_path_uses_app_env(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             base_path = Path(temp_dir)

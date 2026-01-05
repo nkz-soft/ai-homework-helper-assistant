@@ -67,6 +67,22 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(results[1]["tool"], "get_content")
         self.assertEqual(results[2]["tool"], "get_content")
 
+    def test_retrieve_stackoverflow_skips_missing_question_id(self) -> None:
+        tools = stackoverflow_tools(_FakeTools())
+
+        results = retrieve_stackoverflow(
+            tools,
+            query="unit test",
+            tags=None,
+            max_items=3,
+        )
+
+        self.assertEqual(
+            tools.get_content.calls,
+            [{"question_id": "1"}, {"question_id": "2"}],
+        )
+        self.assertEqual(len(results), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

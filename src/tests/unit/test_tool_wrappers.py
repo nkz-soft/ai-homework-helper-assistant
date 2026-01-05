@@ -219,6 +219,137 @@ class ToolWrappersTests(unittest.TestCase):
         with self.assertRaises(WikipediaTimeoutError):
             wikipedia_section(tools, page_id_or_title="Example", section="History")
 
+    def test_so_search_rejects_missing_payload(self) -> None:
+        search_handle = _FakeToolHandle("so_search", None)
+        content_handle = _FakeToolHandle("get_content", {"items": []})
+        tools = stackoverflow_tools(
+            _FakeTools(search_handle=search_handle, content_handle=content_handle)
+        )
+
+        with self.assertRaises(StackOverflowToolError):
+            so_search(tools, query="foo")
+
+    def test_so_search_rejects_invalid_payload_type(self) -> None:
+        search_handle = _FakeToolHandle("so_search", "not-a-mapping")
+        content_handle = _FakeToolHandle("get_content", {"items": []})
+        tools = stackoverflow_tools(
+            _FakeTools(search_handle=search_handle, content_handle=content_handle)
+        )
+
+        with self.assertRaises(StackOverflowToolError):
+            so_search(tools, query="foo")
+
+    def test_wikipedia_section_includes_section_label(self) -> None:
+        section_handle = _FakeToolHandle(
+            "section",
+            {
+                "items": [
+                    {
+                        "pageid": 7,
+                        "title": "Example",
+                        "extract": "content",
+                    }
+                ]
+            },
+            server_name="wikipedia",
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=_FakeToolHandle(
+                    "search", {"items": []}, server_name="wikipedia"
+                ),
+                summary_handle=_FakeToolHandle(
+                    "summary", {"items": []}, server_name="wikipedia"
+                ),
+                section_handle=section_handle,
+            )
+        )
+
+        result = wikipedia_section(
+            tools, page_id_or_title="Example", section="History", max_chars=100
+        )
+
+        self.assertEqual(result["items"][0]["section"], "History")
+
+    def test_wikipedia_search_truncate_edge_cases(self) -> None:
+        search_handle = _FakeToolHandle(
+            "search",
+            {
+                "items": [
+                    {
+                        "pageid": 7,
+                        "title": "Example",
+                        "snippet": "abcd",
+                    }
+                ]
+            },
+            server_name="wikipedia",
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=search_handle,
+                summary_handle=_FakeToolHandle(
+                    "summary", {"items": []}, server_name="wikipedia"
+                ),
+                section_handle=_FakeToolHandle(
+                    "section", {"items": []}, server_name="wikipedia"
+                ),
+            )
+        )
+
+        result_zero = wikipedia_search(tools, query="Example", max_chars=0)
+        result_two = wikipedia_search(tools, query="Example", max_chars=2)
+
+        self.assertEqual(result_zero["items"][0]["excerpt"], "")
+        self.assertEqual(result_two["items"][0]["excerpt"], "ab")
+
+    def test_stackoverflow_item_omits_invalid_score(self) -> None:
+        search_handle = _FakeToolHandle(
+            "so_search",
+            {
+                "items": [
+                    {
+                        "question_id": "1",
+                        "title": "Example",
+                        "score": "not-a-number",
+                    }
+                ]
+            },
+        )
+        tools = stackoverflow_tools(
+            _FakeTools(
+                search_handle=search_handle,
+                content_handle=_FakeToolHandle("get_content", {"items": []}),
+            )
+        )
+
+        result = so_search(tools, query="foo")
+
+        self.assertNotIn("score", result["items"][0])
+
+    def test_wikipedia_summary_fallbacks_to_raw_entry(self) -> None:
+        summary_handle = _FakeToolHandle(
+            "summary",
+            {"title": "Example", "extract": "content"},
+            server_name="wikipedia",
+        )
+        tools = wikipedia_tools(
+            _FakeWikipediaTools(
+                search_handle=_FakeToolHandle(
+                    "search", {"items": []}, server_name="wikipedia"
+                ),
+                summary_handle=summary_handle,
+                section_handle=_FakeToolHandle(
+                    "section", {"items": []}, server_name="wikipedia"
+                ),
+            )
+        )
+
+        result = wikipedia_summary(tools, page_id_or_title="Example")
+
+        self.assertEqual(len(result["items"]), 1)
+        self.assertEqual(result["items"][0]["title"], "Example")
+
 
 class _FakeTools:
     def __init__(
