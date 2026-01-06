@@ -1,0 +1,40 @@
+default:
+  sources:
+    - wikipedia
+    - textbooks
+
+programming:
+  sources:
+    - stackoverflow
+    - wikipedia
+    - textbooks
+  intents:
+    debug:
+      sources:
+        - stackoverflow
+        - wikipedia
+        - textbooks
+    solve:
+      sources:
+        - stackoverflow
+        - wikipedia
+        - textbooks
+    explain:
+      sources:
+        - wikipedia
+        - stackoverflow
+        - textbooks
+
+math:
+  sources:
+    - textbooks
+    - wikipedia
+  intents:
+    solve:
+      sources:
+        - textbooks
+        - wikipedia
+    explain:
+      sources:
+        - wikipedia
+        - textbooks

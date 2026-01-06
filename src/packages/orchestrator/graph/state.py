@@ -40,6 +40,22 @@ class Citation(TypedDict, total=False):
     title: str
 
 
+SourceName = Literal["wikipedia", "stackoverflow", "textbooks"]
+
+
+class PlanCall(TypedDict):
+    source: SourceName
+    tool: str
+    query: str
+    priority: int
+
+
+class RetrievalPlan(TypedDict):
+    calls: list[PlanCall]
+    priority_order: list[SourceName]
+    parallelizable: bool
+
+
 class OrchestratorState(TypedDict, total=False):
     question: str
     student_context: StudentContext
@@ -48,6 +64,7 @@ class OrchestratorState(TypedDict, total=False):
     mode: Literal["coach", "solution_allowed", "hint_only"]
     needs_clarification: bool
     tool_budget: ToolBudget
+    retrieval_plan: RetrievalPlan
     retrieved_items: list[RetrievedItem]
     evidence: list[EvidenceItem]
     draft_answer: str
