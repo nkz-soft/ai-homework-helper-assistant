@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from typing import Any, Mapping
 
+from packages.mcp_clients.interceptors import ToolBudgetLimits, ToolBudgetManager
 from packages.mcp_clients.tool_wrappers import stackoverflow_tools
 from packages.orchestrator.retrieval import retrieve_stackoverflow
 
@@ -82,6 +83,50 @@ class RetrievalTests(unittest.TestCase):
             [{"question_id": "1"}, {"question_id": "2"}],
         )
         self.assertEqual(len(results), 3)
+
+    def test_retrieve_stackoverflow_skips_content_when_budget_exhausted(self) -> None:
+        tools = stackoverflow_tools(_FakeTools())
+        budget = ToolBudgetManager(limits=ToolBudgetLimits(total_calls=1))
+
+        results = retrieve_stackoverflow(
+            tools,
+            query="unit test",
+            tags=None,
+            max_items=2,
+            budget_manager=budget,
+        )
+
+        self.assertEqual(tools.search.calls, [{"query": "unit test", "limit": 2}])
+        self.assertEqual(tools.get_content.calls, [])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["tool"], "so_search")
+        self.assertTrue(results[0]["metadata"]["degraded"])
+        self.assertEqual(
+            results[0]["metadata"]["reason"], "stackoverflow_budget_exhausted"
+        )
+
+    def test_retrieve_stackoverflow_returns_metadata_when_budget_blocks_search(
+        self,
+    ) -> None:
+        tools = stackoverflow_tools(_FakeTools())
+        budget = ToolBudgetManager(limits=ToolBudgetLimits(total_calls=0))
+
+        results = retrieve_stackoverflow(
+            tools,
+            query="unit test",
+            tags=None,
+            max_items=2,
+            budget_manager=budget,
+        )
+
+        self.assertEqual(tools.search.calls, [])
+        self.assertEqual(tools.get_content.calls, [])
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0]["ok"])
+        self.assertTrue(results[0]["metadata"]["degraded"])
+        self.assertEqual(
+            results[0]["metadata"]["reason"], "stackoverflow_budget_exhausted"
+        )
 
 
 if __name__ == "__main__":

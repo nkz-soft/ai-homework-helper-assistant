@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, Mapping, Sequence, TypedDict
+from typing import Any, Literal, Mapping, NotRequired, Sequence, TypedDict
 
 from .client_factory import McpServerTools, McpToolHandle
 from .interceptors.audit import audit_tool_call
@@ -35,12 +35,18 @@ class StackOverflowItem(TypedDict, total=False):
     content: str
 
 
+class ToolResponseMetadata(TypedDict, total=False):
+    degraded: bool
+    reason: str
+
+
 class StackOverflowToolResult(TypedDict):
     source: Literal["stackoverflow"]
     tool: Literal["so_search", "get_content"]
     ok: bool
     items: list[StackOverflowItem]
     raw: Mapping[str, Any]
+    metadata: NotRequired[ToolResponseMetadata]
 
 
 class WikipediaItem(TypedDict, total=False):
