@@ -5,10 +5,10 @@ def test_self_check_removes_unsupported_claims() -> None:
     state = {
         "draft_answer": "\n".join(
             [
-                "Explanation",
+                "## Explanation",
                 "Photosynthesis converts light energy into chemical energy.",
                 "It happens on Mars.",
-                "Sources",
+                "## Sources",
             ]
         ),
         "evidence": [
@@ -29,8 +29,8 @@ def test_self_check_removes_unsupported_claims() -> None:
         "Photosynthesis converts light energy into chemical energy."
         in result["final_answer"]
     )
-    assert "Explanation" in result["final_answer"]
-    assert "Sources" in result["final_answer"]
+    assert "## Explanation" in result["final_answer"]
+    assert "## Sources" in result["final_answer"]
     assert result["diagnostics"]["unsupported_claims"] == ["It happens on Mars."]
 
 

@@ -26,8 +26,8 @@ def test_synthesize_builds_answer_and_citations() -> None:
     assert "final_answer" in result
     assert "citations" in result
     assert len(result["citations"]) == 2
-    assert "Explanation" in result["final_answer"]
-    assert "Sources" in result["final_answer"]
+    assert "## Explanation" in result["final_answer"]
+    assert "## Sources" in result["final_answer"]
     assert (
         "[wikipedia:https://en.wikipedia.org/wiki/Photosynthesis]"
         in result["final_answer"]
