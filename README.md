@@ -16,6 +16,7 @@ Next steps:
 - Review the architecture notes in `docs/architecture.md`.
 - Track implementation tasks in `docs/tasks/`.
 - Adjust configuration under `src/config/`.
+- Run the LangGraph pipeline with `packages.orchestrator.graph.build_graph.run`.
 
 ## VS Code Dev Container (no local Python)
 
@@ -43,6 +44,12 @@ ruff check .
 mypy
 ```
 
+## LangGraph
+
+The orchestrator workflow is assembled with LangGraph in
+`src/packages/orchestrator/graph/build_graph.py`. Use `run(question, context)`
+to execute the pipeline.
+
 ## Layout
 
 ```text
@@ -68,7 +75,7 @@ mypy
 - No production-ready API or UI exists yet.
 - Dependencies, datasets, and external integrations are not wired up.
 - Security policies and threat modeling are still draft documents.
-- Orchestrator nodes are implemented, but the end-to-end graph runner is not.
+- Orchestrator nodes are implemented, but the end-to-end app runner is not.
 
 ## Documentation
 
