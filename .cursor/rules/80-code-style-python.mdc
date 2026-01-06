@@ -41,6 +41,8 @@ alwaysApply: false
 - Prefer progressive strictness:
   - Start with strong warnings (e.g., `warn_unused_ignores`, `warn_return_any`), then tighten module-by-module.
 - Use per-module overrides for third-party libraries lacking stubs (document why).
+- Run `mypy` against the configured `files` scope in `pyproject.toml` after adding new types or updating public APIs.
+- If `mypy` failures are due to missing stubs, add a scoped override or a targeted `# type: ignore[...]` with a brief justification.
 
 ## 7) Patterns to follow
 - Prefer `pathlib` over raw string paths.
@@ -50,4 +52,4 @@ alwaysApply: false
 ## 8) Definition of "done" for Python changes
 - `ruff check` passes
 - formatting passes (ruff format or black, depending on project choice)
-- mypy passes for touched modules (or justified ignore with comment + issue link)
+- `mypy` passes for touched modules (or justified ignore with comment + issue link)
