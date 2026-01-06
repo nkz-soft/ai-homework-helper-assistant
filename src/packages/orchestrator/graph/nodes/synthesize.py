@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Mapping, cast
 
 from packages.orchestrator.graph.state import Citation, EvidenceItem, OrchestratorState
+from packages.orchestrator.prompts import load_prompt, render_prompt
 
 
 def synthesize(state: Mapping[str, object]) -> OrchestratorState:
@@ -11,6 +12,7 @@ def synthesize(state: Mapping[str, object]) -> OrchestratorState:
         return {
             "final_answer": _no_evidence_answer(),
             "citations": [],
+            "diagnostics": _prompt_diagnostics(state),
         }
 
     citations = _build_citations(evidence)
@@ -20,24 +22,21 @@ def synthesize(state: Mapping[str, object]) -> OrchestratorState:
     self_check = _build_self_check(evidence)
     sources = _build_sources(citations)
 
-    final_answer = "\n\n".join(
-        [
-            "Explanation",
-            explanation,
-            "Steps",
-            steps,
-            "Worked Example",
-            example,
-            "Self-Check Questions",
-            self_check,
-            "Sources",
-            sources,
-        ]
+    final_answer = render_prompt(
+        "synthesis",
+        {
+            "explanation": explanation,
+            "steps": steps,
+            "example": example,
+            "self_check": self_check,
+            "sources": sources,
+        },
     )
 
     return {
         "final_answer": final_answer,
         "citations": citations,
+        "diagnostics": _prompt_diagnostics(state),
     }
 
 
@@ -97,10 +96,11 @@ def _build_sources(citations: list[Citation]) -> str:
     for index, cite in enumerate(citations, start=1):
         label = cite.get("title") or cite.get("locator") or cite.get("source")
         url = cite.get("url") or cite.get("locator") or ""
-        if url:
-            lines.append(f"- [{index}] {label} — {url}")
-        else:
-            lines.append(f"- [{index}] {label}")
+        line = render_prompt(
+            "citation",
+            {"index": str(index), "title": str(label), "url": str(url)},
+        )
+        lines.append(line.rstrip("— ").rstrip())
     return "\n".join(lines)
 
 
@@ -134,17 +134,20 @@ def _citation_marker(item: EvidenceItem) -> str:
 
 
 def _no_evidence_answer() -> str:
-    return "\n".join(
-        [
-            "Explanation",
-            "I do not have enough evidence yet to answer confidently.",
-            "Steps",
-            "1. Share more context or details about the problem.",
-            "Worked Example",
-            "Example unavailable without sources.",
-            "Self-Check Questions",
-            "- What details are still missing?",
-            "Sources",
-            "- No sources available.",
-        ]
+    return render_prompt(
+        "synthesis",
+        {
+            "explanation": "I do not have enough evidence yet to answer confidently.",
+            "steps": "1. Share more context or details about the problem.",
+            "example": "Example unavailable without sources.",
+            "self_check": "- What details are still missing?",
+            "sources": "- No sources available.",
+        },
     )
+
+
+def _prompt_diagnostics(state: Mapping[str, object]) -> dict[str, object]:
+    diagnostics = state.get("diagnostics")
+    merged = dict(diagnostics) if isinstance(diagnostics, Mapping) else {}
+    merged.setdefault("system_prompt", load_prompt("system"))
+    return merged
