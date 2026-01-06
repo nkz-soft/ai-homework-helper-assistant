@@ -4,8 +4,8 @@ Monorepo scaffold for a homework helper assistant (LangGraph + MCP).
 
 ## Quickstart
 
-This repository is a scaffold. There is no runnable app yet, but you can start
-structuring the project and filling in the docs.
+This repository is a scaffold. The LangGraph orchestrator nodes and tests are
+implemented, but there is no runnable app yet.
 
 ```powershell
 git clone <repo-url>
@@ -15,7 +15,7 @@ cd ai-homework-helper-assistant
 Next steps:
 - Review the architecture notes in `docs/architecture.md`.
 - Track implementation tasks in `docs/tasks/`.
-- Fill in configuration placeholders under `src/config/`.
+- Adjust configuration under `src/config/`.
 
 ## VS Code Dev Container (no local Python)
 
@@ -37,7 +37,10 @@ tests can import project packages under the `src/` layout.
 ```powershell
 python -m pip install -e ".[dev]"
 $env:PYTHONPATH = "src"
-python -m unittest
+pytest
+ruff format .
+ruff check .
+mypy
 ```
 
 ## Layout
@@ -65,7 +68,7 @@ python -m unittest
 - No production-ready API or UI exists yet.
 - Dependencies, datasets, and external integrations are not wired up.
 - Security policies and threat modeling are still draft documents.
-- Test suites are empty placeholders.
+- Orchestrator nodes are implemented, but the end-to-end graph runner is not.
 
 ## Documentation
 
