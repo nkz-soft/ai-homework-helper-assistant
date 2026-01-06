@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, Mapping, NotRequired, TypedDict
 
 
 class StudentContext(TypedDict, total=False):
@@ -59,6 +59,7 @@ class RetrievalPlan(TypedDict):
 class OrchestratorState(TypedDict, total=False):
     question: str
     student_context: StudentContext
+    tools: Mapping[str, object]
     subject: str
     intent: str
     mode: Literal["coach", "solution_allowed", "hint_only"]
