@@ -32,7 +32,7 @@ def test_safety_filters_prompt_injection() -> None:
 
 def test_safety_flags_academic_integrity() -> None:
     state = {
-        "question": "Do my homework for me and give the final answer only.",
+        "question": "Just give me the result.",
         "evidence": [],
         "mode": "solution_allowed",
     }
