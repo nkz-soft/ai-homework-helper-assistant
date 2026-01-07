@@ -38,7 +38,8 @@ def plan(state: Mapping[str, object]) -> OrchestratorState:
     policies_cfg = _load_config("policies.yaml")
 
     sources = _determine_sources(subject, intent, subjects_cfg, policies_cfg)
-    calls = _build_calls(question, subject, intent, sources)
+    query_hints = _determine_query_hints(subject, intent, subjects_cfg)
+    calls = _build_calls(question, subject, intent, sources, query_hints)
 
     retrieval_plan: RetrievalPlan = {
         "calls": calls,
@@ -54,9 +55,10 @@ def _build_calls(
     subject: str,
     intent: str,
     sources: list[SourceName],
+    query_hints: list[str],
 ) -> list[PlanCall]:
     calls: list[PlanCall] = []
-    query = _build_query(question, subject, intent)
+    query = _build_query(question, subject, intent, query_hints)
     for priority, source in enumerate(sources, start=1):
         tool = _SOURCE_TO_TOOL[source]
         calls.append(
@@ -70,9 +72,19 @@ def _build_calls(
     return calls
 
 
-def _build_query(question: str, subject: str, intent: str) -> str:
-    if question:
-        return question
+def _build_query(
+    question: str, subject: str, intent: str, query_hints: list[str]
+) -> str:
+    base = question
+    if not base:
+        if subject != "general":
+            base = f"{intent} {subject}".strip()
+        else:
+            base = intent
+    hint = query_hints[0] if query_hints else ""
+    if hint and hint.lower() not in base.lower():
+        return f"{base} {hint}".strip()
+    return base
     if subject != "general":
         return f"{intent} {subject}".strip()
     return intent
@@ -100,6 +112,30 @@ def _determine_sources(
         sources = [source for source in sources if source not in deny_list]
 
     return sources or ["wikipedia"]
+
+
+def _determine_query_hints(
+    subject: str, intent: str, subjects_cfg: dict[str, object]
+) -> list[str]:
+    subject_cfg = subjects_cfg.get(subject)
+    if isinstance(subject_cfg, dict):
+        intent_cfg = subject_cfg.get("intents")
+        if isinstance(intent_cfg, dict):
+            hints = intent_cfg.get(intent)
+            if isinstance(hints, dict):
+                intent_hints = hints.get("query_hints")
+                if isinstance(intent_hints, list):
+                    return _string_list(intent_hints)
+        subject_hints = subject_cfg.get("query_hints")
+        if isinstance(subject_hints, list):
+            return _string_list(subject_hints)
+
+    default_cfg = subjects_cfg.get("default")
+    if isinstance(default_cfg, dict):
+        default_hints = default_cfg.get("query_hints")
+        if isinstance(default_hints, list):
+            return _string_list(default_hints)
+    return []
 
 
 def _lookup_subject_sources(
@@ -144,6 +180,10 @@ def _normalize_sources(values: list[object]) -> list[SourceName]:
         if item in _SOURCE_NAMES:
             normalized.append(cast(SourceName, item))
     return normalized
+
+
+def _string_list(values: list[object]) -> list[str]:
+    return [str(value) for value in values if str(value).strip()]
 
 
 def _load_config(filename: str) -> dict[str, object]:
