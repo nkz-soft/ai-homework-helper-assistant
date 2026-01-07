@@ -2,39 +2,63 @@ default:
   sources:
     - wikipedia
     - textbooks
+  query_hints:
+    - definition
+    - overview
 
 programming:
   sources:
     - stackoverflow
     - wikipedia
     - textbooks
+  query_hints:
+    - error
+    - example
   intents:
     debug:
       sources:
         - stackoverflow
         - wikipedia
         - textbooks
+      query_hints:
+        - stacktrace
+        - fix
     solve:
       sources:
         - stackoverflow
         - wikipedia
         - textbooks
+      query_hints:
+        - solution
+        - workaround
     explain:
       sources:
         - wikipedia
         - stackoverflow
         - textbooks
+      query_hints:
+        - concept
+        - tutorial
 
 math:
   sources:
     - textbooks
     - wikipedia
+  query_hints:
+    - formula
+    - theorem
   intents:
     solve:
       sources:
         - textbooks
         - wikipedia
+      query_hints:
+        - step by step
+        - worked example
     explain:
       sources:
         - wikipedia
         - textbooks
+      query_hints:
+        - intuition
+        - proof

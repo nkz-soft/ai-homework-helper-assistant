@@ -28,4 +28,5 @@ def test_plan_builds_fallback_query() -> None:
     result = plan(state)
 
     retrieval_plan = result["retrieval_plan"]
-    assert retrieval_plan["calls"][0]["query"] == "solve math"
+    assert retrieval_plan["calls"][0]["query"].startswith("solve math")
+    assert "step by step" in retrieval_plan["calls"][0]["query"]
