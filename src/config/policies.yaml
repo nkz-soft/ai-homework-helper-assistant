@@ -1,3 +1,34 @@
+# Policy defaults used when a request does not specify a mode.
+defaults:
+  mode: coach
+  response_format:
+    sections:
+      - Explanation
+      - Steps
+      - Worked Example
+      - Self-Check Questions
+      - Sources
+    citation_required: true
+    max_verbatim_chars: 240
+
+# Supported response modes and the guardrails they imply.
+modes:
+  coach:
+    description: Guided explanation with hints and partial steps.
+    allow_full_solution: false
+  solution_allowed:
+    description: Full worked solutions allowed when policy permits.
+    allow_full_solution: true
+
+# Red flag phrases that trigger academic integrity mode.
+red_flags:
+  - do my homework
+  - final answer only
+  - no explanation
+  - solve it for me
+  - just give me the result
+
+# Tool allow/deny lists for retrieval planning.
 allow_sources:
   - wikipedia
   - stackoverflow
