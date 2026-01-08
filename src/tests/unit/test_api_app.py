@@ -4,7 +4,8 @@ from typing import Mapping
 
 from fastapi.testclient import TestClient
 
-from apps.assistant_api.main import create_app, get_orchestrator
+from apps.assistant_api.dependencies import get_orchestrator
+from apps.assistant_api.main import create_app
 
 
 def test_health_endpoint() -> None:
@@ -24,11 +25,11 @@ def test_chat_endpoint_uses_orchestrator() -> None:
         question: str, context: Mapping[str, object] | None
     ) -> Mapping[str, object]:
         assert question == "What is inertia?"
-        assert context == {"student_context": {"subject": "physics"}}
+        assert context == {"subject": "physics"}
         return {
             "final_answer": "Inertia is resistance to changes in motion.",
             "citations": [{"source": "wikipedia", "locator": "https://example.com"}],
-            "diagnostics": {"note": "ok"},
+            "diagnostics": {"note": "ok", "errors": ["partial_stackoverflow"]},
             "safety_flags": ["coach"],
         }
 
@@ -39,7 +40,7 @@ def test_chat_endpoint_uses_orchestrator() -> None:
         "/api/v1/chat",
         json={
             "question": "What is inertia?",
-            "student_context": {"subject": "physics"},
+            "context": {"subject": "physics"},
         },
     )
 
@@ -48,4 +49,5 @@ def test_chat_endpoint_uses_orchestrator() -> None:
     assert payload["answer"].startswith("Inertia")
     assert payload["citations"]
     assert payload["diagnostics"]["note"] == "ok"
+    assert payload["diagnostics"]["errors"] == ["partial_stackoverflow"]
     assert payload["safety_flags"] == ["coach"]
