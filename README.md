@@ -4,8 +4,8 @@ Monorepo scaffold for a homework helper assistant (LangGraph + MCP).
 
 ## Quickstart
 
-This repository is a scaffold. The LangGraph orchestrator nodes and tests are
-implemented, but there is no runnable app yet.
+This repository is a scaffold with a runnable FastAPI host and LangGraph-based
+orchestrator nodes.
 
 ```powershell
 git clone <repo-url>
@@ -17,6 +17,7 @@ Next steps:
 - Track implementation tasks in `docs/tasks/`.
 - Adjust configuration under `src/config/`.
 - Run the LangGraph pipeline with `packages.orchestrator.graph.build_graph.run`.
+- Start the API with `uvicorn apps.assistant_api.main:app --reload`.
 
 ## VS Code Dev Container (no local Python)
 
@@ -50,6 +51,19 @@ The orchestrator workflow is assembled with LangGraph in
 `src/packages/orchestrator/graph/build_graph.py`. Use `run(question, context)`
 to execute the pipeline.
 
+## API
+
+The FastAPI host lives in `src/apps/assistant_api/main.py` with:
+- `GET /health`
+- `POST /api/v1/chat`
+
+Environment variables:
+- `APP_NAME` (default: Homework Helper API)
+- `LOG_LEVEL` (default: INFO)
+- `RATE_LIMIT_REQUESTS` (default: 60)
+- `RATE_LIMIT_WINDOW_SECONDS` (default: 60)
+- `CACHE_TTL_SECONDS` (default: 300)
+
 ## Layout
 
 ```text
@@ -75,7 +89,7 @@ to execute the pipeline.
 - No production-ready API or UI exists yet.
 - Dependencies, datasets, and external integrations are not wired up.
 - Security policies and threat modeling are still draft documents.
-- Orchestrator nodes are implemented, but the end-to-end app runner is not.
+- Orchestrator nodes are implemented, but the end-to-end product UI is not.
 
 ## Documentation
 
