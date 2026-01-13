@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Homework Helper</title>
+    <link rel="stylesheet" href="/static/app.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Homework Helper</p>
+        <h1>Ask a question, get guided help.</h1>
+      </div>
+      <p class="tagline">Fast, focused answers with citations.</p>
+    </header>
+
+    <main class="chat-shell">
+      <form
+        id="chat-form"
+        hx-post="/ui/chat"
+        hx-target="#messages"
+        hx-swap="innerHTML"
+        hx-indicator="#loading"
+        hx-disabled-elt="button"
+      >
+        <section id="messages" class="messages" aria-live="polite">
+          {% include "_messages.html" %}
+        </section>
+
+        <div class="input-row">
+          <label class="sr-only" for="question">Your question</label>
+          <input
+            id="question"
+            name="question"
+            type="text"
+            placeholder="Try: Explain inertia like I'm 10"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Send</button>
+          <span id="loading" class="loading" aria-live="polite">Thinking...</span>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>

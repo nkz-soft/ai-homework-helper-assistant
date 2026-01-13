@@ -94,9 +94,9 @@ def stackoverflow_tools(
 def wikipedia_tools(
     tools: McpServerTools,
     *,
-    search_tool: str = "search",
-    summary_tool: str = "summary",
-    section_tool: str = "section",
+    search_tool: str = "search_wikipedia",
+    summary_tool: str = "get_summary",
+    section_tool: str = "summarize_article_section",
 ) -> WikipediaToolset:
     return WikipediaToolset(
         search=tools.handle(search_tool),
@@ -167,9 +167,10 @@ def wikipedia_search(
     limit: int | None = None,
     max_chars: int = 2000,
 ) -> WikipediaToolResult:
+    _ = language
     raw = _call_wikipedia_tool(
         tools.search,
-        _compact_args({"query": query, "lang": language, "limit": limit}),
+        _compact_args({"query": query, "limit": limit}),
     )
     items = _normalize_wikipedia_items(raw, max_chars=max_chars)
     return {
@@ -188,9 +189,10 @@ def wikipedia_summary(
     language: str | None = None,
     max_chars: int = 2000,
 ) -> WikipediaToolResult:
+    _ = language
     raw = _call_wikipedia_tool(
         tools.summary,
-        _compact_args({"page": page_id_or_title, "lang": language}),
+        _compact_args({"title": page_id_or_title}),
     )
     items = _normalize_wikipedia_items(raw, max_chars=max_chars)
     return {
@@ -210,9 +212,16 @@ def wikipedia_section(
     language: str | None = None,
     max_chars: int = 2000,
 ) -> WikipediaToolResult:
+    _ = language
     raw = _call_wikipedia_tool(
         tools.section,
-        _compact_args({"page": page_id_or_title, "section": section, "lang": language}),
+        _compact_args(
+            {
+                "title": page_id_or_title,
+                "section_title": section,
+                "max_length": max_chars,
+            }
+        ),
     )
     items = _normalize_wikipedia_items(raw, max_chars=max_chars, section=section)
     return {
