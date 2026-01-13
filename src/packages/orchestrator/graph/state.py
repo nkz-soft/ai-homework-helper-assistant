@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping, NotRequired, TypedDict
+from typing import Any, Literal, Mapping, NotRequired, TypedDict, cast
+
+from packages.orchestrator.llm import LlmClient
 
 
 class StudentContext(TypedDict, total=False):
@@ -60,6 +62,7 @@ class OrchestratorState(TypedDict, total=False):
     question: str
     student_context: StudentContext
     tools: Mapping[str, object]
+    llm_client: LlmClient
     subject: str
     intent: str
     mode: Literal["coach", "solution_allowed", "hint_only"]
@@ -73,3 +76,12 @@ class OrchestratorState(TypedDict, total=False):
     citations: list[Citation]
     safety_flags: list[str]
     diagnostics: dict[str, Any]
+
+
+def get_llm_client(state: Mapping[str, object]) -> LlmClient | None:
+    value = state.get("llm_client")
+    if value is None:
+        return None
+    if hasattr(value, "generate"):
+        return cast(LlmClient, value)
+    return None
