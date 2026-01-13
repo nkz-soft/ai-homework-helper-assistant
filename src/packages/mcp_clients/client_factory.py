@@ -3,9 +3,20 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
+import subprocess
+import threading
+import time
+from datetime import timedelta
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol
+
+import anyio
+from mcp import types as mcp_types
+from mcp.client.session import ClientSession
+from mcp.client.sse import sse_client
+from mcp.client.stdio import StdioServerParameters, stdio_client
 
 
 class McpConfigError(ValueError):
@@ -14,13 +25,13 @@ class McpConfigError(ValueError):
 
 @dataclass(frozen=True)
 class RetrySettings:
-    max_retries: int = 2
+    max_retries: int = 1
     backoff_seconds: float = 0.5
 
 
 @dataclass(frozen=True)
 class McpClientSettings:
-    timeout_seconds: float = 10.0
+    timeout_seconds: float = 30.0
     retry: RetrySettings = field(default_factory=RetrySettings)
 
 
@@ -40,11 +51,20 @@ class McpToolHandle:
     tool_name: str
     timeout_seconds: float
     retry: RetrySettings
+    caller: (
+        Callable[
+            [Mapping[str, Any]],
+            Mapping[str, Any] | list[Any] | None,
+        ]
+        | None
+    ) = None
 
     def call(
         self, arguments: Mapping[str, Any]
     ) -> Mapping[str, Any] | list[Any] | None:
-        raise NotImplementedError("Tool execution requires a concrete MCP adapter.")
+        if self.caller is None:
+            raise NotImplementedError("Tool execution requires a concrete MCP adapter.")
+        return self.caller(arguments)
 
 
 @dataclass(frozen=True)
@@ -67,13 +87,27 @@ class McpPromptHandle:
 class McpServerTools:
     server_name: str
     settings: McpClientSettings
+    caller: Callable[
+        [str, str, Mapping[str, Any], float, RetrySettings],
+        Mapping[str, Any] | list[Any] | None,
+    ]
 
     def handle(self, tool_name: str) -> McpToolHandle:
+        def _call(arguments: Mapping[str, Any]) -> Mapping[str, Any] | list[Any] | None:
+            return self.caller(
+                self.server_name,
+                tool_name,
+                arguments,
+                self.settings.timeout_seconds,
+                self.settings.retry,
+            )
+
         return McpToolHandle(
             server_name=self.server_name,
             tool_name=tool_name,
             timeout_seconds=self.settings.timeout_seconds,
             retry=self.settings.retry,
+            caller=_call,
         )
 
 
@@ -124,7 +158,11 @@ class StaticMcpClientAdapter:
         self._logger = logger
         self._servers = dict(servers)
         self._tools = {
-            name: McpServerTools(server_name=name, settings=settings)
+            name: McpServerTools(
+                server_name=name,
+                settings=settings,
+                caller=self._unsupported_tool_call,
+            )
             for name in self._servers
         }
         self._resources = {
@@ -154,6 +192,117 @@ class StaticMcpClientAdapter:
     def get_prompts(self) -> Mapping[str, McpServerPrompts]:
         return self._prompts
 
+    def _unsupported_tool_call(
+        self,
+        server_name: str,
+        tool_name: str,
+        arguments: Mapping[str, Any],
+        timeout_seconds: float,
+        retry: RetrySettings,
+    ) -> Mapping[str, Any] | list[Any] | None:
+        raise NotImplementedError("Tool execution requires a concrete MCP adapter.")
+
+
+class StdioMcpClientAdapter:
+    def __init__(
+        self,
+        servers: Mapping[str, McpServerConfig],
+        settings: McpClientSettings,
+        logger: logging.Logger,
+    ) -> None:
+        self._settings = settings
+        self._logger = logger
+        self._servers = dict(servers)
+        self._tools = {
+            name: McpServerTools(
+                server_name=name,
+                settings=settings,
+                caller=self._call_tool,
+            )
+            for name in self._servers
+        }
+        self._resources = {
+            name: McpServerResources(server_name=name, settings=settings)
+            for name in self._servers
+        }
+        self._prompts = {
+            name: McpServerPrompts(server_name=name, settings=settings)
+            for name in self._servers
+        }
+
+        self._logger.info(
+            "Initialized MCP client adapter",
+            extra={
+                "event": "mcp_adapter_initialized",
+                "server_count": len(self._servers),
+                "servers": list(self._servers.keys()),
+            },
+        )
+
+    def get_tools(self) -> Mapping[str, McpServerTools]:
+        return self._tools
+
+    def get_resources(self) -> Mapping[str, McpServerResources]:
+        return self._resources
+
+    def get_prompts(self) -> Mapping[str, McpServerPrompts]:
+        return self._prompts
+
+    def _call_tool(
+        self,
+        server_name: str,
+        tool_name: str,
+        arguments: Mapping[str, Any],
+        timeout_seconds: float,
+        retry: RetrySettings,
+    ) -> Mapping[str, Any] | list[Any] | None:
+        config = self._servers.get(server_name)
+        if config is None:
+            raise McpConfigError(f"Unknown MCP server '{server_name}'.")
+        if config.transport not in {"stdio", "sse"}:
+            raise NotImplementedError(
+                f"Transport '{config.transport}' is not supported."
+            )
+
+        last_error: Exception | None = None
+        for attempt in range(retry.max_retries + 1):
+            try:
+                if config.transport == "sse":
+                    return _call_sse_tool(
+                        config=config,
+                        tool_name=tool_name,
+                        arguments=arguments,
+                        timeout_seconds=timeout_seconds,
+                    )
+                return _call_stdio_tool(
+                    config=config,
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    timeout_seconds=timeout_seconds,
+                )
+            except Exception as exc:  # pragma: no cover - defensive retry
+                self._logger.error(
+                    "MCP tool call failed: %s",
+                    _describe_exception(exc),
+                    extra={
+                        "event": "mcp_tool_error",
+                        "server": server_name,
+                        "tool": tool_name,
+                        "attempt": attempt + 1,
+                        "transport": config.transport,
+                        "error_type": type(exc).__name__,
+                        "error": _describe_exception(exc),
+                    },
+                    exc_info=True,
+                )
+                last_error = exc
+                if attempt >= retry.max_retries:
+                    raise
+                time.sleep(retry.backoff_seconds * (2**attempt))
+        if last_error is not None:
+            raise last_error
+        return None
+
 
 class McpClientFactory:
     def __init__(
@@ -169,7 +318,7 @@ class McpClientFactory:
         self._settings = settings or McpClientSettings()
         self._config_path = config_path or self._default_config_path(env)
         self._servers = self._load_config(self._config_path)
-        self._adapter = adapter or StaticMcpClientAdapter(
+        self._adapter = adapter or StdioMcpClientAdapter(
             servers=self._servers,
             settings=self._settings,
             logger=self._logger,
@@ -252,3 +401,176 @@ class McpClientFactory:
             },
         )
         return servers
+
+
+@dataclass
+class _SseServerProcess:
+    process: subprocess.Popen[str]
+    url: str
+
+
+_SSE_PROCESS_LOCK = threading.Lock()
+_SSE_PROCESSES: dict[str, _SseServerProcess] = {}
+
+
+def _call_stdio_tool(
+    *,
+    config: McpServerConfig,
+    tool_name: str,
+    arguments: Mapping[str, Any],
+    timeout_seconds: float,
+) -> Mapping[str, Any] | list[Any] | None:
+    async def _run() -> mcp_types.CallToolResult:
+        params = StdioServerParameters(
+            command=config.command,
+            args=list(config.args),
+            env=dict(config.env) if config.env else None,
+        )
+        async with stdio_client(params) as (read_stream, write_stream):
+            session = ClientSession(read_stream, write_stream)
+            timeout = timedelta(seconds=timeout_seconds)
+            with anyio.fail_after(timeout_seconds):
+                await session.initialize()
+                return await session.call_tool(
+                    tool_name,
+                    dict(arguments),
+                    read_timeout_seconds=timeout,
+                )
+
+    result = anyio.run(_run)
+    return _coerce_tool_result(result)
+
+
+def _call_sse_tool(
+    *,
+    config: McpServerConfig,
+    tool_name: str,
+    arguments: Mapping[str, Any],
+    timeout_seconds: float,
+) -> Mapping[str, Any] | list[Any] | None:
+    server = _ensure_sse_server(config)
+
+    async def _run() -> mcp_types.CallToolResult:
+        async with sse_client(
+            server.url,
+            timeout=timeout_seconds,
+            sse_read_timeout=timeout_seconds,
+        ) as (read_stream, write_stream):
+            session = ClientSession(read_stream, write_stream)
+            with anyio.fail_after(timeout_seconds):
+                await session.initialize()
+                return await session.call_tool(
+                    tool_name,
+                    dict(arguments),
+                    read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                )
+
+    result = anyio.run(_run)
+    return _coerce_tool_result(result)
+
+
+def _ensure_sse_server(config: McpServerConfig) -> _SseServerProcess:
+    if config.transport != "sse":
+        raise ValueError("SSE server requested for non-SSE config.")
+    with _SSE_PROCESS_LOCK:
+        existing = _SSE_PROCESSES.get(config.name)
+        if existing and existing.process.poll() is None:
+            return existing
+
+        host = _extract_arg_value(config.args, "--host") or "127.0.0.1"
+        port = _extract_arg_value(config.args, "--port")
+        if port is None:
+            port = str(_find_free_port())
+
+        args = list(config.args)
+        if "--transport" not in args:
+            args.extend(["--transport", "sse"])
+        if "--host" not in args:
+            args.extend(["--host", host])
+        if "--port" not in args:
+            args.extend(["--port", port])
+
+        env = dict(config.env) if config.env else None
+        process = subprocess.Popen(  # noqa: S603
+            [config.command, *args],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=env,
+            text=True,
+        )
+        url = f"http://{host}:{port}/sse"
+        _wait_for_port(host, int(port), timeout_seconds=10.0)
+        server = _SseServerProcess(process=process, url=url)
+        _SSE_PROCESSES[config.name] = server
+        return server
+
+
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _extract_arg_value(args: tuple[str, ...], flag: str) -> str | None:
+    if flag not in args:
+        return None
+    index = args.index(flag)
+    if index + 1 < len(args):
+        return args[index + 1]
+    return None
+
+
+def _wait_for_port(host: str, port: int, timeout_seconds: float) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return
+        except OSError:
+            time.sleep(0.1)
+    raise TimeoutError(f"SSE server not ready on {host}:{port}")
+
+
+def _describe_exception(exc: BaseException) -> str:
+    if isinstance(exc, BaseExceptionGroup):
+        parts = ", ".join(_describe_exception(item) for item in exc.exceptions)
+        return f"{type(exc).__name__}({parts})"
+    return f"{type(exc).__name__}: {exc}"
+
+
+def _coerce_tool_result(
+    result: mcp_types.CallToolResult,
+) -> Mapping[str, Any] | list[Any] | None:
+    if result.isError:
+        raise RuntimeError("MCP tool call returned an error.")
+
+    if result.structuredContent is not None:
+        return result.structuredContent
+
+    if not result.content:
+        return {}
+
+    text_items: list[str] = []
+    for item in result.content:
+        if isinstance(item, mcp_types.TextContent):
+            text_items.append(item.text)
+        else:
+            try:
+                payload = item.model_dump()
+            except AttributeError:
+                payload = {"content": str(item)}
+            return {"content": payload}
+
+    if len(text_items) == 1:
+        return _maybe_parse_json(text_items[0])
+    return {"content": text_items}
+
+
+def _maybe_parse_json(payload: str) -> Mapping[str, Any] | list[Any] | dict[str, str]:
+    try:
+        parsed = json.loads(payload)
+    except json.JSONDecodeError:
+        return {"content": payload}
+    if isinstance(parsed, (dict, list)):
+        return parsed
+    return {"content": str(parsed)}

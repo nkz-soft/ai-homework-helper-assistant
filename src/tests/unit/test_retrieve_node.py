@@ -52,17 +52,17 @@ def test_retrieve_partial_failure_timeout() -> None:
     )
     wiki_search = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="search",
+        tool_name="search_wikipedia",
         error=TimeoutError("boom"),
     )
     wiki_summary = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="summary",
+        tool_name="get_summary",
         response={"items": []},
     )
     wiki_section = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="section",
+        tool_name="summarize_article_section",
         response={"items": []},
     )
 
@@ -77,9 +77,9 @@ def test_retrieve_partial_failure_timeout() -> None:
         "wikipedia": _FakeServerTools(
             "wikipedia",
             {
-                "search": wiki_search,
-                "summary": wiki_summary,
-                "section": wiki_section,
+                "search_wikipedia": wiki_search,
+                "get_summary": wiki_summary,
+                "summarize_article_section": wiki_section,
             },
         ),
     }
@@ -131,17 +131,17 @@ def test_retrieve_budget_enforcement() -> None:
     )
     wiki_search = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="search",
+        tool_name="search_wikipedia",
         response={"items": [{"title": "Python"}]},
     )
     wiki_summary = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="summary",
+        tool_name="get_summary",
         response={"items": []},
     )
     wiki_section = _FakeToolHandle(
         server_name="wikipedia",
-        tool_name="section",
+        tool_name="summarize_article_section",
         response={"items": []},
     )
 
@@ -156,9 +156,9 @@ def test_retrieve_budget_enforcement() -> None:
         "wikipedia": _FakeServerTools(
             "wikipedia",
             {
-                "search": wiki_search,
-                "summary": wiki_summary,
-                "section": wiki_section,
+                "search_wikipedia": wiki_search,
+                "get_summary": wiki_summary,
+                "summarize_article_section": wiki_section,
             },
         ),
     }

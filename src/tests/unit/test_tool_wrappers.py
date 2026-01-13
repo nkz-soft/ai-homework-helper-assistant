@@ -121,7 +121,7 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_wikipedia_search_truncates_and_passes_lang(self) -> None:
         search_handle = _FakeToolHandle(
-            "search",
+            "search_wikipedia",
             {
                 "items": [
                     {
@@ -135,10 +135,10 @@ class ToolWrappersTests(unittest.TestCase):
             server_name="wikipedia",
         )
         summary_handle = _FakeToolHandle(
-            "summary", {"items": []}, server_name="wikipedia"
+            "get_summary", {"items": []}, server_name="wikipedia"
         )
         section_handle = _FakeToolHandle(
-            "section", {"items": []}, server_name="wikipedia"
+            "summarize_article_section", {"items": []}, server_name="wikipedia"
         )
         tools = wikipedia_tools(
             _FakeWikipediaTools(
@@ -152,46 +152,44 @@ class ToolWrappersTests(unittest.TestCase):
             tools, query="Example", language="en", limit=3, max_chars=10
         )
 
-        self.assertEqual(
-            search_handle.calls, [{"query": "Example", "lang": "en", "limit": 3}]
-        )
+        self.assertEqual(search_handle.calls, [{"query": "Example", "limit": 3}])
         self.assertEqual(result["tool"], "search")
         self.assertEqual(result["items"][0]["excerpt"], "xxxxxxx...")
 
     def test_wikipedia_summary_uses_page_arg(self) -> None:
         summary_handle = _FakeToolHandle(
-            "summary",
+            "get_summary",
             {"title": "Example", "extract": "content"},
             server_name="wikipedia",
         )
         tools = wikipedia_tools(
             _FakeWikipediaTools(
                 search_handle=_FakeToolHandle(
-                    "search", {"items": []}, server_name="wikipedia"
+                    "search_wikipedia", {"items": []}, server_name="wikipedia"
                 ),
                 summary_handle=summary_handle,
                 section_handle=_FakeToolHandle(
-                    "section", {"items": []}, server_name="wikipedia"
+                    "summarize_article_section", {"items": []}, server_name="wikipedia"
                 ),
             )
         )
 
         result = wikipedia_summary(tools, page_id_or_title="Example", language=None)
 
-        self.assertEqual(summary_handle.calls, [{"page": "Example"}])
+        self.assertEqual(summary_handle.calls, [{"title": "Example"}])
         self.assertEqual(result["items"][0]["content"], "content")
 
     def test_wikipedia_section_handles_errors(self) -> None:
         section_handle = _FakeToolHandle(
-            "section", {"error": "missing"}, server_name="wikipedia"
+            "summarize_article_section", {"error": "missing"}, server_name="wikipedia"
         )
         tools = wikipedia_tools(
             _FakeWikipediaTools(
                 search_handle=_FakeToolHandle(
-                    "search", {"items": []}, server_name="wikipedia"
+                    "search_wikipedia", {"items": []}, server_name="wikipedia"
                 ),
                 summary_handle=_FakeToolHandle(
-                    "summary", {"items": []}, server_name="wikipedia"
+                    "get_summary", {"items": []}, server_name="wikipedia"
                 ),
                 section_handle=section_handle,
             )
@@ -202,15 +200,15 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_wikipedia_section_timeout(self) -> None:
         section_handle = _FakeToolHandle(
-            "section", TimeoutError("boom"), server_name="wikipedia"
+            "summarize_article_section", TimeoutError("boom"), server_name="wikipedia"
         )
         tools = wikipedia_tools(
             _FakeWikipediaTools(
                 search_handle=_FakeToolHandle(
-                    "search", {"items": []}, server_name="wikipedia"
+                    "search_wikipedia", {"items": []}, server_name="wikipedia"
                 ),
                 summary_handle=_FakeToolHandle(
-                    "summary", {"items": []}, server_name="wikipedia"
+                    "get_summary", {"items": []}, server_name="wikipedia"
                 ),
                 section_handle=section_handle,
             )
@@ -241,7 +239,7 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_wikipedia_section_includes_section_label(self) -> None:
         section_handle = _FakeToolHandle(
-            "section",
+            "summarize_article_section",
             {
                 "items": [
                     {
@@ -256,10 +254,10 @@ class ToolWrappersTests(unittest.TestCase):
         tools = wikipedia_tools(
             _FakeWikipediaTools(
                 search_handle=_FakeToolHandle(
-                    "search", {"items": []}, server_name="wikipedia"
+                    "search_wikipedia", {"items": []}, server_name="wikipedia"
                 ),
                 summary_handle=_FakeToolHandle(
-                    "summary", {"items": []}, server_name="wikipedia"
+                    "get_summary", {"items": []}, server_name="wikipedia"
                 ),
                 section_handle=section_handle,
             )
@@ -273,7 +271,7 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_wikipedia_search_truncate_edge_cases(self) -> None:
         search_handle = _FakeToolHandle(
-            "search",
+            "search_wikipedia",
             {
                 "items": [
                     {
@@ -289,10 +287,10 @@ class ToolWrappersTests(unittest.TestCase):
             _FakeWikipediaTools(
                 search_handle=search_handle,
                 summary_handle=_FakeToolHandle(
-                    "summary", {"items": []}, server_name="wikipedia"
+                    "get_summary", {"items": []}, server_name="wikipedia"
                 ),
                 section_handle=_FakeToolHandle(
-                    "section", {"items": []}, server_name="wikipedia"
+                    "summarize_article_section", {"items": []}, server_name="wikipedia"
                 ),
             )
         )
@@ -329,18 +327,18 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_wikipedia_summary_fallbacks_to_raw_entry(self) -> None:
         summary_handle = _FakeToolHandle(
-            "summary",
+            "get_summary",
             {"title": "Example", "extract": "content"},
             server_name="wikipedia",
         )
         tools = wikipedia_tools(
             _FakeWikipediaTools(
                 search_handle=_FakeToolHandle(
-                    "search", {"items": []}, server_name="wikipedia"
+                    "search_wikipedia", {"items": []}, server_name="wikipedia"
                 ),
                 summary_handle=summary_handle,
                 section_handle=_FakeToolHandle(
-                    "section", {"items": []}, server_name="wikipedia"
+                    "summarize_article_section", {"items": []}, server_name="wikipedia"
                 ),
             )
         )
@@ -379,11 +377,11 @@ class _FakeWikipediaTools:
         self._section = section_handle
 
     def handle(self, tool_name: str) -> _FakeToolHandle:
-        if tool_name == "search":
+        if tool_name == "search_wikipedia":
             return self._search
-        if tool_name == "summary":
+        if tool_name == "get_summary":
             return self._summary
-        if tool_name == "section":
+        if tool_name == "summarize_article_section":
             return self._section
         raise AssertionError(f"Unexpected tool: {tool_name}")
 

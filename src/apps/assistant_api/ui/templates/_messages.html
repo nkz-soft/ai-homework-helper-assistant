@@ -1,0 +1,36 @@
+{% for message in messages %}
+  <article class="message message--{{ message.role }}{% if message.is_error %} message--error{% endif %}">
+    <div class="message__role">
+      {% if message.role == "user" %}You{% else %}Assistant{% endif %}
+    </div>
+    <div class="message__content">{{ message.content }}</div>
+
+    {% if message.citations %}
+      <div class="message__sources">
+        <strong>Sources</strong>
+        <ul>
+          {% for citation in message.citations %}
+            <li>
+              {% if citation.url %}
+                <a href="{{ citation.url }}" target="_blank" rel="noopener">{{ citation.label }}</a>
+              {% else %}
+                {{ citation.label }}
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if message.diagnostics %}
+      <details class="message__diagnostics">
+        <summary>Diagnostics</summary>
+        <pre>{{ message.diagnostics | tojson(indent=2) }}</pre>
+      </details>
+    {% endif %}
+  </article>
+{% else %}
+  <div class="message message--empty">Ask a question to get started.</div>
+{% endfor %}
+
+<input type="hidden" name="messages" value="{{ messages_json | e }}" />
