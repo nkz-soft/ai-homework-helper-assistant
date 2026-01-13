@@ -34,6 +34,18 @@ class _FakeServerTools:
         return self._handles[tool_name]
 
 
+class _FakeLlmClient:
+    def generate(
+        self,
+        prompt: str,
+        *,
+        metadata: Mapping[str, Any] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
+        return "ok"
+
+
 def test_run_builds_answer_with_citations() -> None:
     stack_search = _FakeToolHandle(
         server_name="stackoverflow",
@@ -102,3 +114,45 @@ def test_run_builds_answer_with_citations() -> None:
     assert "citations" in result
     assert result["citations"]
     assert "Explanation" in result["final_answer"]
+
+
+def test_run_accepts_llm_client() -> None:
+    tools = {
+        "wikipedia": _FakeServerTools(
+            "wikipedia",
+            {
+                "search": _FakeToolHandle(
+                    server_name="wikipedia",
+                    tool_name="search",
+                    response={
+                        "items": [
+                            {
+                                "page_id": "10",
+                                "title": "Type system",
+                                "url": "https://en.wikipedia.org/wiki/Type_system",
+                                "excerpt": "Type systems classify values and expressions.",
+                            }
+                        ]
+                    },
+                ),
+                "summary": _FakeToolHandle(
+                    server_name="wikipedia",
+                    tool_name="summary",
+                    response={"items": []},
+                ),
+                "section": _FakeToolHandle(
+                    server_name="wikipedia",
+                    tool_name="section",
+                    response={"items": []},
+                ),
+            },
+        ),
+    }
+
+    result = run(
+        "What is a type system?",
+        {"tools": tools},
+        llm_client=_FakeLlmClient(),
+    )
+
+    assert "final_answer" in result

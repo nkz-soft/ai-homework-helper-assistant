@@ -20,18 +20,23 @@ from packages.orchestrator.graph.nodes import (
     synthesize,
 )
 from packages.orchestrator.graph.state import OrchestratorState
+from packages.orchestrator.llm import LlmClient
 
 log = logging.getLogger(__name__)
 
 
 def run(
-    question: str, context: Mapping[str, object] | None = None
+    question: str,
+    context: Mapping[str, object] | None = None,
+    llm_client: LlmClient | None = None,
 ) -> OrchestratorState:
     state: dict[str, object] = {"question": question}
     if context:
         if "student_context" not in context:
             state["student_context"] = dict(context)
         state.update(context)
+    if llm_client is not None:
+        state["llm_client"] = llm_client
 
     graph = _build_graph()
     return _run_async(
