@@ -49,7 +49,8 @@ def _build_graph():
     graph.add_node("safety", _with_node_logging("safety", safety))
     graph.add_node("synthesize", _with_node_logging("synthesize", synthesize))
     graph.add_node(
-        "prepare_self_check", _with_node_logging("prepare_self_check", _prepare_self_check)
+        "prepare_self_check",
+        _with_node_logging("prepare_self_check", _prepare_self_check),
     )
     graph.add_node("self_check", _with_node_logging("self_check", self_check))
     graph.add_node("finalize", _with_node_logging("finalize", finalize))

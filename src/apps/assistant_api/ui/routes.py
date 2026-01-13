@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Literal
+from typing import Any, Callable, Literal, Mapping
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 templates = get_templates()
+
+OrchestratorFn = Callable[[str, Mapping[str, object] | None], Mapping[str, object]]
 
 
 class Citation(BaseModel):
@@ -53,6 +55,7 @@ def ui_index(request: Request) -> HTMLResponse:
 @router.post("/ui/chat", response_class=HTMLResponse)
 def ui_chat(
     request: Request,
+    orchestrator: OrchestratorFn = Depends(get_orchestrator),
     question: str = Form(""),
     messages: str = Form(""),
 ) -> HTMLResponse:
@@ -73,7 +76,6 @@ def ui_chat(
 
     existing_messages.append(Message(role="user", content=cleaned_question))
 
-    orchestrator = get_orchestrator()
     try:
         response = chat(
             payload=ChatRequest(question=cleaned_question, context=None),

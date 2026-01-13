@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Mapping
+import html
 
 from fastapi.testclient import TestClient
 
@@ -47,9 +48,11 @@ def test_ui_chat_renders_messages() -> None:
     )
 
     assert response.status_code == 200
-    assert "Inertia is the tendency" in response.text
-    assert "Sources" in response.text
-    assert "Newton's Laws" in response.text
+    text = html.unescape(response.text)
+
+    assert "Inertia is the tendency" in text
+    assert "Sources" in text
+    assert "Newton's Laws" in text
 
 
 def test_ui_chat_shows_error_message_on_failure() -> None:
