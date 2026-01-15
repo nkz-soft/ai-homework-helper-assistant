@@ -391,9 +391,7 @@ class McpClientFactory:
                     f"Server '{name}' protocol_version must be a string."
                 )
             if not isinstance(minimal_init, bool):
-                raise McpConfigError(
-                    f"Server '{name}' minimal_init must be a boolean."
-                )
+                raise McpConfigError(f"Server '{name}' minimal_init must be a boolean.")
 
             servers[name] = McpServerConfig(
                 name=name,
@@ -512,12 +510,14 @@ async def _initialize_session(
                 form=mcp_types.FormElicitationCapability(),
                 url=mcp_types.UrlElicitationCapability(),
             )
-            if session._elicitation_callback is not mcp_session._default_elicitation_callback
+            if session._elicitation_callback
+            is not mcp_session._default_elicitation_callback
             else None
         )
         roots = (
             mcp_types.RootsCapability(listChanged=True)
-            if session._list_roots_callback is not mcp_session._default_list_roots_callback
+            if session._list_roots_callback
+            is not mcp_session._default_list_roots_callback
             else None
         )
         capabilities = mcp_types.ClientCapabilities(
@@ -532,7 +532,8 @@ async def _initialize_session(
         mcp_types.ClientRequest(
             mcp_types.InitializeRequest(
                 params=mcp_types.InitializeRequestParams(
-                    protocolVersion=protocol_version or mcp_types.LATEST_PROTOCOL_VERSION,
+                    protocolVersion=protocol_version
+                    or mcp_types.LATEST_PROTOCOL_VERSION,
                     capabilities=capabilities,
                     clientInfo=session._client_info,
                 ),
