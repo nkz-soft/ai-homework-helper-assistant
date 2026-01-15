@@ -3,12 +3,14 @@
   "servers": {
     "wikipedia": {
       "transport": "sse",
+      "protocol_version": "2024-11-05",
+      "minimal_init": true,
       "command": "/home/vscode/.local/bin/wikipedia-mcp",
       "args": [
         "--transport",
         "sse",
         "--host",
-        "127.0.0.1",
+        "mcp-wiki",
         "--port",
         "8765",
         "--log-level",

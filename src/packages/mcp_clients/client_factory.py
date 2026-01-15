@@ -14,6 +14,7 @@ from typing import Any, Callable, Mapping, Protocol
 
 import anyio
 from mcp import types as mcp_types
+from mcp.client import session as mcp_session
 from mcp.client.session import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -31,7 +32,7 @@ class RetrySettings:
 
 @dataclass(frozen=True)
 class McpClientSettings:
-    timeout_seconds: float = 30.0
+    timeout_seconds: float = 90.0
     retry: RetrySettings = field(default_factory=RetrySettings)
 
 
@@ -43,6 +44,8 @@ class McpServerConfig:
     args: tuple[str, ...]
     env: Mapping[str, str] = field(default_factory=dict)
     enabled: bool = True
+    protocol_version: str | None = None
+    minimal_init: bool = False
 
 
 @dataclass(frozen=True)
@@ -365,6 +368,8 @@ class McpClientFactory:
             command = raw.get("command")
             args = raw.get("args", [])
             env = raw.get("env", {})
+            protocol_version = raw.get("protocol_version")
+            minimal_init = raw.get("minimal_init", False)
 
             if not isinstance(transport, str) or not transport:
                 raise McpConfigError(f"Server '{name}' transport must be a string.")
@@ -381,6 +386,14 @@ class McpClientFactory:
                 for key, value in env.items()
             ):
                 raise McpConfigError(f"Server '{name}' env must be string keys/values.")
+            if protocol_version is not None and not isinstance(protocol_version, str):
+                raise McpConfigError(
+                    f"Server '{name}' protocol_version must be a string."
+                )
+            if not isinstance(minimal_init, bool):
+                raise McpConfigError(
+                    f"Server '{name}' minimal_init must be a boolean."
+                )
 
             servers[name] = McpServerConfig(
                 name=name,
@@ -389,6 +402,8 @@ class McpClientFactory:
                 args=tuple(args),
                 env=env,
                 enabled=enabled,
+                protocol_version=protocol_version,
+                minimal_init=minimal_init,
             )
 
         self._logger.info(
@@ -405,7 +420,7 @@ class McpClientFactory:
 
 @dataclass
 class _SseServerProcess:
-    process: subprocess.Popen[str]
+    process: subprocess.Popen[str] | None
     url: str
 
 
@@ -427,15 +442,19 @@ def _call_stdio_tool(
             env=dict(config.env) if config.env else None,
         )
         async with stdio_client(params) as (read_stream, write_stream):
-            session = ClientSession(read_stream, write_stream)
-            timeout = timedelta(seconds=timeout_seconds)
-            with anyio.fail_after(timeout_seconds):
-                await session.initialize()
-                return await session.call_tool(
-                    tool_name,
-                    dict(arguments),
-                    read_timeout_seconds=timeout,
-                )
+            async with ClientSession(read_stream, write_stream) as session:
+                timeout = timedelta(seconds=timeout_seconds)
+                with anyio.fail_after(timeout_seconds):
+                    await _initialize_session(
+                        session,
+                        config.protocol_version,
+                        minimal_init=config.minimal_init,
+                    )
+                    return await session.call_tool(
+                        tool_name,
+                        dict(arguments),
+                        read_timeout_seconds=timeout,
+                    )
 
     result = anyio.run(_run)
     return _coerce_tool_result(result)
@@ -451,36 +470,126 @@ def _call_sse_tool(
     server = _ensure_sse_server(config)
 
     async def _run() -> mcp_types.CallToolResult:
+        sse_read_timeout = max(timeout_seconds * 2, 300.0)
         async with sse_client(
             server.url,
             timeout=timeout_seconds,
-            sse_read_timeout=timeout_seconds,
+            sse_read_timeout=sse_read_timeout,
         ) as (read_stream, write_stream):
-            session = ClientSession(read_stream, write_stream)
-            with anyio.fail_after(timeout_seconds):
-                await session.initialize()
-                return await session.call_tool(
-                    tool_name,
-                    dict(arguments),
-                    read_timeout_seconds=timedelta(seconds=timeout_seconds),
-                )
+            async with ClientSession(read_stream, write_stream) as session:
+                with anyio.fail_after(timeout_seconds):
+                    await _initialize_session(
+                        session,
+                        config.protocol_version,
+                        minimal_init=config.minimal_init,
+                    )
+                    return await session.call_tool(
+                        tool_name,
+                        dict(arguments),
+                        read_timeout_seconds=timedelta(seconds=timeout_seconds),
+                    )
 
     result = anyio.run(_run)
     return _coerce_tool_result(result)
 
 
+async def _initialize_session(
+    session: ClientSession,
+    protocol_version: str | None,
+    *,
+    minimal_init: bool,
+) -> mcp_types.InitializeResult:
+    if minimal_init:
+        capabilities = mcp_types.ClientCapabilities()
+    else:
+        sampling = (
+            (session._sampling_capabilities or mcp_types.SamplingCapability())
+            if session._sampling_callback is not mcp_session._default_sampling_callback
+            else None
+        )
+        elicitation = (
+            mcp_types.ElicitationCapability(
+                form=mcp_types.FormElicitationCapability(),
+                url=mcp_types.UrlElicitationCapability(),
+            )
+            if session._elicitation_callback is not mcp_session._default_elicitation_callback
+            else None
+        )
+        roots = (
+            mcp_types.RootsCapability(listChanged=True)
+            if session._list_roots_callback is not mcp_session._default_list_roots_callback
+            else None
+        )
+        capabilities = mcp_types.ClientCapabilities(
+            sampling=sampling,
+            elicitation=elicitation,
+            experimental=None,
+            roots=roots,
+            tasks=session._task_handlers.build_capability(),
+        )
+
+    result = await session.send_request(
+        mcp_types.ClientRequest(
+            mcp_types.InitializeRequest(
+                params=mcp_types.InitializeRequestParams(
+                    protocolVersion=protocol_version or mcp_types.LATEST_PROTOCOL_VERSION,
+                    capabilities=capabilities,
+                    clientInfo=session._client_info,
+                ),
+            )
+        ),
+        mcp_types.InitializeResult,
+    )
+
+    if result.protocolVersion not in mcp_session.SUPPORTED_PROTOCOL_VERSIONS:
+        raise RuntimeError(
+            f"Unsupported protocol version from the server: {result.protocolVersion}"
+        )
+
+    session._server_capabilities = result.capabilities
+    await session.send_notification(
+        mcp_types.ClientNotification(mcp_types.InitializedNotification())
+    )
+    return result
+
+
 def _ensure_sse_server(config: McpServerConfig) -> _SseServerProcess:
     if config.transport != "sse":
         raise ValueError("SSE server requested for non-SSE config.")
+    host = _extract_arg_value(config.args, "--host") or "127.0.0.1"
+    port = _extract_arg_value(config.args, "--port")
+    if port is None:
+        port = str(_find_free_port())
+    url = f"http://{host}:{port}/sse"
+    external_host = host not in {"127.0.0.1", "localhost"}
+
     with _SSE_PROCESS_LOCK:
         existing = _SSE_PROCESSES.get(config.name)
-        if existing and existing.process.poll() is None:
-            return existing
+        if existing:
+            if existing.process is None:
+                try:
+                    _wait_for_port(host, int(port), timeout_seconds=2.0)
+                    return existing
+                except TimeoutError:
+                    _SSE_PROCESSES.pop(config.name, None)
+            elif existing.process.poll() is None:
+                return existing
 
-        host = _extract_arg_value(config.args, "--host") or "127.0.0.1"
-        port = _extract_arg_value(config.args, "--port")
-        if port is None:
-            port = str(_find_free_port())
+        if _is_port_open(host, int(port)):
+            server = _SseServerProcess(process=None, url=url)
+            _SSE_PROCESSES[config.name] = server
+            return server
+
+        try:
+            _wait_for_port(host, int(port), timeout_seconds=5.0)
+            server = _SseServerProcess(process=None, url=url)
+            _SSE_PROCESSES[config.name] = server
+            return server
+        except TimeoutError:
+            if external_host:
+                raise TimeoutError(
+                    f"SSE server for '{config.name}' not reachable on {host}:{port}."
+                )
 
         args = list(config.args)
         if "--transport" not in args:
@@ -498,7 +607,6 @@ def _ensure_sse_server(config: McpServerConfig) -> _SseServerProcess:
             env=env,
             text=True,
         )
-        url = f"http://{host}:{port}/sse"
         _wait_for_port(host, int(port), timeout_seconds=10.0)
         server = _SseServerProcess(process=process, url=url)
         _SSE_PROCESSES[config.name] = server
@@ -509,6 +617,14 @@ def _find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         return int(sock.getsockname()[1])
+
+
+def _is_port_open(host: str, port: int, timeout_seconds: float = 0.5) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout_seconds):
+            return True
+    except OSError:
+        return False
 
 
 def _extract_arg_value(args: tuple[str, ...], flag: str) -> str | None:
