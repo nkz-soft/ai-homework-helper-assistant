@@ -1,0 +1,40 @@
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/python:3.12
+    command: ["sleep", "infinity"]
+    volumes:
+      - ..:/workspaces/ai-homework-helper-assistant:cached
+    environment:
+      APP_ENV: "dev"
+    networks:
+      - devcontainer
+    depends_on:
+      - mcp-wiki
+
+  mcp-wiki:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.mcp-wiki
+    networks:
+      - devcontainer
+    ports:
+      - "8765:8765"
+    environment:
+      FASTMCP_SHOW_CLI_BANNER: "false"
+      FASTMCP_LOG_ENABLED: "true"
+    command:
+      [
+        "wikipedia-mcp",
+        "--transport",
+        "sse",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8765",
+        "--log-level",
+        "ERROR"
+      ]
+
+networks:
+  devcontainer:
+    name: ai-homework-helper-assistant-dev

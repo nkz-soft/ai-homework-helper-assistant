@@ -3,6 +3,7 @@
   "servers": {
     "wikipedia": {
       "transport": "sse",
+      "protocol_version": "2024-11-05",
       "command": "/home/vscode/.local/bin/wikipedia-mcp",
       "args": [
         "--transport",

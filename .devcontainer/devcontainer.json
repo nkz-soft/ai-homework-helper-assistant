@@ -1,6 +1,8 @@
 {
   "name": "ai-homework-helper-assistant",
-  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/ai-homework-helper-assistant",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "20"
@@ -17,5 +19,12 @@
     }
   },
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspaces/ai-homework-helper-assistant"
+  "runServices": ["devcontainer", "mcp-wiki"],
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": {
+      "label": "MCP Wikipedia (SSE)"
+    }
+  }
 }

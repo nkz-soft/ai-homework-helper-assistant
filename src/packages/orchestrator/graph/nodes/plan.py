@@ -147,9 +147,13 @@ def _lookup_subject_sources(
     if isinstance(subject_cfg, dict):
         intent_cfg = subject_cfg.get("intents")
         if isinstance(intent_cfg, dict):
-            sources = intent_cfg.get(intent)
-            if isinstance(sources, list):
-                return _normalize_sources(sources)
+            intent_sources = intent_cfg.get(intent)
+            if isinstance(intent_sources, list):
+                return _normalize_sources(intent_sources)
+            if isinstance(intent_sources, dict):
+                sources = intent_sources.get("sources")
+                if isinstance(sources, list):
+                    return _normalize_sources(sources)
             sources = intent_cfg.get("sources")
             if isinstance(sources, list):
                 return _normalize_sources(sources)

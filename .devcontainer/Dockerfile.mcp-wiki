@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    FASTMCP_SHOW_CLI_BANNER=false \
+    FASTMCP_LOG_ENABLED=true
+
+RUN pip install --no-cache-dir wikipedia-mcp==1.7.0
+
+EXPOSE 8765
+
+CMD ["wikipedia-mcp", "--transport", "sse", "--host", "0.0.0.0", "--port", "8765", "--log-level", "ERROR"]
