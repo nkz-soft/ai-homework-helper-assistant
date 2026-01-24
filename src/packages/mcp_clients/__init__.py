@@ -16,8 +16,8 @@ __all__ = [
     "StackOverflowTimeoutError",
     "StackOverflowToolResult",
     "StackOverflowToolset",
-    "get_content",
+    "get_question",
     "so_get_content",
-    "so_search",
+    "search_questions",
     "stackoverflow_tools",
 ]

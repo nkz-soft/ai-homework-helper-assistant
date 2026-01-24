@@ -42,12 +42,12 @@ class _FakeServerTools:
 def test_retrieve_partial_failure_timeout() -> None:
     stack_search = _FakeToolHandle(
         server_name="stackoverflow",
-        tool_name="so_search",
+        tool_name="search_questions",
         response={"items": [{"question_id": "1", "title": "First"}]},
     )
     stack_content = _FakeToolHandle(
         server_name="stackoverflow",
-        tool_name="get_content",
+        tool_name="get_question",
         response={"items": [{"question_id": "1", "content": "body"}]},
     )
     wiki_search = _FakeToolHandle(
@@ -70,8 +70,8 @@ def test_retrieve_partial_failure_timeout() -> None:
         "stackoverflow": _FakeServerTools(
             "stackoverflow",
             {
-                "so_search": stack_search,
-                "get_content": stack_content,
+                "search_questions": stack_search,
+                "get_question": stack_content,
             },
         ),
         "wikipedia": _FakeServerTools(
@@ -89,7 +89,7 @@ def test_retrieve_partial_failure_timeout() -> None:
             "calls": [
                 {
                     "source": "stackoverflow",
-                    "tool": "so_search",
+                    "tool": "search_questions",
                     "query": "python error",
                     "priority": 1,
                 },
@@ -121,12 +121,12 @@ def test_retrieve_partial_failure_timeout() -> None:
 def test_retrieve_budget_enforcement() -> None:
     stack_search = _FakeToolHandle(
         server_name="stackoverflow",
-        tool_name="so_search",
+        tool_name="search_questions",
         response={"items": [{"question_id": "2", "title": "Second"}]},
     )
     stack_content = _FakeToolHandle(
         server_name="stackoverflow",
-        tool_name="get_content",
+        tool_name="get_question",
         response={"items": [{"question_id": "2", "content": "body"}]},
     )
     wiki_search = _FakeToolHandle(
@@ -149,8 +149,8 @@ def test_retrieve_budget_enforcement() -> None:
         "stackoverflow": _FakeServerTools(
             "stackoverflow",
             {
-                "so_search": stack_search,
-                "get_content": stack_content,
+                "search_questions": stack_search,
+                "get_question": stack_content,
             },
         ),
         "wikipedia": _FakeServerTools(
@@ -168,7 +168,7 @@ def test_retrieve_budget_enforcement() -> None:
             "calls": [
                 {
                     "source": "stackoverflow",
-                    "tool": "so_search",
+                    "tool": "search_questions",
                     "query": "list comprehension",
                     "priority": 1,
                 },

@@ -42,7 +42,7 @@ class ToolResponseMetadata(TypedDict, total=False):
 
 class StackOverflowToolResult(TypedDict):
     source: Literal["stackoverflow"]
-    tool: Literal["so_search", "get_content"]
+    tool: Literal["search_questions", "get_question"]
     ok: bool
     items: list[StackOverflowItem]
     raw: Mapping[str, Any]
@@ -82,8 +82,8 @@ class WikipediaToolset:
 def stackoverflow_tools(
     tools: McpServerTools,
     *,
-    search_tool: str = "so_search",
-    content_tool: str = "get_content",
+    search_tool: str = "search_questions",
+    content_tool: str = "get_question",
 ) -> StackOverflowToolset:
     return StackOverflowToolset(
         search=tools.handle(search_tool),
@@ -112,20 +112,19 @@ def so_search(
     tags: Sequence[str] | None = None,
     limit: int | None = None,
 ) -> StackOverflowToolResult:
+    arguments: dict[str, Any]
+    if tags and tools.search.tool_name == "search_by_tags":
+        arguments = {"tags": list(tags), "limit": limit}
+    else:
+        arguments = {"query": query, "limit": limit}
     raw = _call_tool(
         tools.search,
-        _compact_args(
-            {
-                "query": query,
-                "tags": list(tags) if tags else None,
-                "limit": limit,
-            }
-        ),
+        _compact_args(arguments),
     )
     items = _normalize_items(raw)
     return {
         "source": "stackoverflow",
-        "tool": "so_search",
+        "tool": "search_questions",
         "ok": True,
         "items": items,
         "raw": raw,
@@ -137,14 +136,18 @@ def so_get_content(
     *,
     question_id: str,
 ) -> StackOverflowToolResult:
+    question_id_value = _coerce_int(question_id)
+    question_argument = (
+        question_id_value if question_id_value is not None else question_id
+    )
     raw = _call_tool(
         tools.get_content,
-        _compact_args({"question_id": question_id}),
+        _compact_args({"question_id": question_argument}),
     )
     items = _normalize_items(raw)
     return {
         "source": "stackoverflow",
-        "tool": "get_content",
+        "tool": "get_question",
         "ok": True,
         "items": items,
         "raw": raw,

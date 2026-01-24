@@ -29,9 +29,10 @@ Python on your host machine.
 3. Open this repo in VS Code and run "Dev Containers: Reopen in Container".
 4. Wait for the container to build, then use the integrated terminal.
 
-The devcontainer uses Docker Compose and automatically starts a companion
-`mcp-wiki` service (Wikipedia MCP over SSE on port `8765`). The main container
-includes Python 3.12 and Node.js (for MCP tools like `npx`).
+The devcontainer uses Docker Compose and automatically starts companion
+`mcp-wiki` (Wikipedia MCP over SSE on port `8765`) and `mcp-stackoverflow`
+containers. The main container includes Python 3.12 and Node.js (for MCP tools
+like `npx`).
 
 ## Testing
 

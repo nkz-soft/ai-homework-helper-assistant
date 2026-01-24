@@ -10,6 +10,7 @@ services:
       - devcontainer
     depends_on:
       - mcp-wiki
+      - mcp-stackoverflow
 
   mcp-wiki:
     build:
@@ -34,6 +35,20 @@ services:
         "--log-level",
         "ERROR"
       ]
+
+  mcp-stackoverflow:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.mcp-stackoverflow
+    networks:
+      - devcontainer
+    stdin_open: true
+    ports:
+      - "8766:8766"
+    environment:
+      STACKOVERFLOW_API_KEY: "${STACKOVERFLOW_API_KEY}"
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8766"
 
 networks:
   devcontainer:

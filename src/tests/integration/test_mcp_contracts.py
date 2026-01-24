@@ -74,7 +74,7 @@ class McpContractTests(unittest.TestCase):
                         "stackoverflow": {
                             "transport": "stdio",
                             "command": "npx",
-                            "args": ["-y", "mcp-remote", "mcp.stackoverflow.com"],
+                            "args": ["-y", "mcp-remote", "https://github.com/NoTalkTech/stackoverflow-mcp"],
                         },
                     },
                 },
