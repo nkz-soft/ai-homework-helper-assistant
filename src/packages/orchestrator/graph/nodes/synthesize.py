@@ -135,7 +135,9 @@ def _build_llm_prompt(
             instruction,
             f"Question: {question}" if question else "Question: (none)",
             f"Mode: {mode}",
-            f"Student context: {student_context}" if student_context else "Student context: (none)",
+            f"Student context: {student_context}"
+            if student_context
+            else "Student context: (none)",
             "Evidence:",
             evidence_lines or "- (none)",
             "Sources:",
