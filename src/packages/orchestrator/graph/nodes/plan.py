@@ -22,7 +22,7 @@ _DEFAULT_SOURCES: dict[tuple[str, str], list[SourceName]] = {
 }
 
 _SOURCE_TO_TOOL: dict[SourceName, str] = {
-    "stackoverflow": "so_search",
+    "stackoverflow": "search_questions",
     "wikipedia": "wikipedia_search",
     "textbooks": "textbooks_search",
 }
@@ -111,6 +111,9 @@ def _determine_sources(
     if deny_list:
         sources = [source for source in sources if source not in deny_list]
 
+    if subject == "programming":
+        sources = _ensure_stackoverflow(sources, allow_list, deny_list)
+
     return sources or ["wikipedia"]
 
 
@@ -184,6 +187,20 @@ def _normalize_sources(values: list[object]) -> list[SourceName]:
         if item in _SOURCE_NAMES:
             normalized.append(cast(SourceName, item))
     return normalized
+
+
+def _ensure_stackoverflow(
+    sources: list[SourceName],
+    allow_list: list[SourceName],
+    deny_list: list[SourceName],
+) -> list[SourceName]:
+    if "stackoverflow" in sources:
+        return sources
+    if allow_list and "stackoverflow" not in allow_list:
+        return sources
+    if deny_list and "stackoverflow" in deny_list:
+        return sources
+    return ["stackoverflow", *sources]
 
 
 def _string_list(values: list[object]) -> list[str]:

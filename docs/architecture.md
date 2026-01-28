@@ -92,7 +92,7 @@ homework-helper-mcp/
 All MCP servers are declared in JSON config (dev/prod variants). Example names:
 
 * `wikipedia` — stdio transport (local MCP server)
-* `stackoverflow` — remote MCP server via `npx mcp-remote mcp.stackoverflow.com`
+* `stackoverflow` — remote MCP server via `npx mcp-remote https://github.com/NoTalkTech/stackoverflow-mcp`
 * `textbooks` — local MCP server (optional)
 
 **Key rule:** only servers listed in config may be used (allowlist).

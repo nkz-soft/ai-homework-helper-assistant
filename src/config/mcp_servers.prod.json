@@ -23,7 +23,7 @@
     "stackoverflow": {
       "transport": "stdio",
       "command": "npx",
-      "args": ["-y", "mcp-remote", "mcp.stackoverflow.com"],
+      "args": ["-y", "mcp-remote", "https://github.com/NoTalkTech/stackoverflow-mcp"],
       "env": {
         "STACKOVERFLOW_API_KEY": ""
       }

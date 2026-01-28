@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import logging
 from typing import Mapping, cast
 
-from packages.orchestrator.graph.state import Citation, EvidenceItem, OrchestratorState
+from packages.orchestrator.graph.state import (
+    Citation,
+    EvidenceItem,
+    OrchestratorState,
+    get_llm_client,
+)
 from packages.orchestrator.prompts import load_prompt, render_prompt
+
+log = logging.getLogger(__name__)
 
 
 def synthesize(state: Mapping[str, object]) -> OrchestratorState:
@@ -16,22 +24,24 @@ def synthesize(state: Mapping[str, object]) -> OrchestratorState:
         }
 
     citations = _build_citations(evidence)
-    explanation = _build_explanation(evidence)
-    steps = _build_steps(evidence)
-    example = _build_example(evidence)
-    self_check = _build_self_check(evidence)
-    sources = _build_sources(citations)
+    llm_client = get_llm_client(state)
+    final_answer = ""
+    if llm_client is not None:
+        prompt = _build_llm_prompt(state, evidence, citations)
+        try:
+            final_answer = llm_client.generate(prompt, temperature=0.2, max_tokens=900)
+        except Exception as exc:  # noqa: BLE001 - LLM failures should fall back.
+            log.warning("LLM synthesis failed: %s", exc)
+            diagnostics = _prompt_diagnostics(state)
+            _append_diagnostic_error(diagnostics, f"llm_error:{exc}")
+            return {
+                "final_answer": _fallback_answer(evidence, citations),
+                "citations": citations,
+                "diagnostics": diagnostics,
+            }
 
-    final_answer = render_prompt(
-        "synthesis",
-        {
-            "explanation": explanation,
-            "steps": steps,
-            "example": example,
-            "self_check": self_check,
-            "sources": sources,
-        },
-    )
+    if not final_answer.strip():
+        final_answer = _fallback_answer(evidence, citations)
 
     return {
         "final_answer": final_answer,
@@ -102,6 +112,97 @@ def _build_sources(citations: list[Citation]) -> str:
         )
         lines.append(line.rstrip("— ").rstrip())
     return "\n".join(lines)
+
+
+def _build_llm_prompt(
+    state: Mapping[str, object],
+    evidence: list[EvidenceItem],
+    citations: list[Citation],
+) -> str:
+    system_prompt = load_prompt("system")
+    question = str(state.get("question", "")).strip()
+    mode = str(state.get("mode", "coach"))
+    student_context = _format_student_context(state.get("student_context"))
+    evidence_lines = _format_evidence(evidence)
+    source_lines = _build_sources(citations)
+    instruction = (
+        "Use only the evidence below. Include citation markers in the form "
+        "[source:locator] and keep the section headings exactly as shown."
+    )
+    return "\n\n".join(
+        [
+            system_prompt,
+            instruction,
+            f"Question: {question}" if question else "Question: (none)",
+            f"Mode: {mode}",
+            f"Student context: {student_context}"
+            if student_context
+            else "Student context: (none)",
+            "Evidence:",
+            evidence_lines or "- (none)",
+            "Sources:",
+            source_lines or "- No sources available.",
+            "Respond with these headings: ## Explanation, ## Steps, ## Worked Example, "
+            "## Self-Check Questions, ## Sources.",
+        ]
+    )
+
+
+def _format_student_context(student_context: object) -> str:
+    if not isinstance(student_context, Mapping):
+        return ""
+    parts: list[str] = []
+    for key in ("subject_hint", "language", "level"):
+        value = student_context.get(key)
+        if isinstance(value, str) and value.strip():
+            parts.append(f"{key}={value.strip()}")
+    constraints = student_context.get("constraints")
+    if isinstance(constraints, list):
+        normalized = [str(item).strip() for item in constraints if str(item).strip()]
+        if normalized:
+            parts.append(f"constraints={', '.join(normalized)}")
+    return "; ".join(parts)
+
+
+def _format_evidence(evidence: list[EvidenceItem]) -> str:
+    lines: list[str] = []
+    for item in evidence:
+        claim = item.get("claim", "").strip()
+        support = item.get("support", "").strip()
+        source = item.get("source", "").strip()
+        locator = item.get("locator", "").strip()
+        if not claim and not support:
+            continue
+        lines.append(
+            f"- source={source} locator={locator} claim={claim} support={support}"
+        )
+    return "\n".join(lines)
+
+
+def _fallback_answer(evidence: list[EvidenceItem], citations: list[Citation]) -> str:
+    explanation = _build_explanation(evidence)
+    steps = _build_steps(evidence)
+    example = _build_example(evidence)
+    self_check = _build_self_check(evidence)
+    sources = _build_sources(citations)
+    return render_prompt(
+        "synthesis",
+        {
+            "explanation": explanation,
+            "steps": steps,
+            "example": example,
+            "self_check": self_check,
+            "sources": sources,
+        },
+    )
+
+
+def _append_diagnostic_error(diagnostics: dict[str, object], error: str) -> None:
+    errors = diagnostics.get("errors")
+    if isinstance(errors, list):
+        errors.append(error)
+    else:
+        diagnostics["errors"] = [error]
 
 
 def _build_citations(evidence: list[EvidenceItem]) -> list[Citation]:

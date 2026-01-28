@@ -84,7 +84,7 @@ class AuditInterceptorTests(unittest.TestCase):
 
         tool = _FakeToolHandle(
             server_name="stackoverflow",
-            tool_name="so_search",
+            tool_name="search_questions",
             response=RuntimeError("boom"),
         )
         clock_calls = iter([2.0, 2.5])
@@ -103,7 +103,7 @@ class AuditInterceptorTests(unittest.TestCase):
         self.assertEqual(payload["response_size"], 0)
         self.assertEqual(payload["latency_ms"], 500)
         self.assertEqual(payload["server"], "stackoverflow")
-        self.assertEqual(payload["tool"], "so_search")
+        self.assertEqual(payload["tool"], "search_questions")
 
     def test_hash_redacts_secret_values(self) -> None:
         hash_one = _hash_arguments(

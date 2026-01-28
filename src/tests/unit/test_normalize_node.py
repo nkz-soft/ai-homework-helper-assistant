@@ -6,7 +6,7 @@ def test_normalize_builds_evidence_from_sources() -> None:
         "retrieved_items": [
             {
                 "source": "stackoverflow",
-                "tool": "so_search",
+                "tool": "search_questions",
                 "query": "python list",
                 "result": {
                     "items": [

@@ -143,7 +143,7 @@ async def _run_stackoverflow(
     budget_manager: ToolBudgetManager | None,
 ) -> RetrievedItem:
     toolset = stackoverflow_tools(server_tools)
-    if tool == "get_content":
+    if tool == "get_question":
         handler = toolset.get_content
 
         def call() -> Any:

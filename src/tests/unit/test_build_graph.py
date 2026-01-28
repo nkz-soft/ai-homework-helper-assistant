@@ -49,7 +49,7 @@ class _FakeLlmClient:
 def test_run_builds_answer_with_citations() -> None:
     stack_search = _FakeToolHandle(
         server_name="stackoverflow",
-        tool_name="so_search",
+        tool_name="search_questions",
         response={
             "items": [
                 {
@@ -90,7 +90,7 @@ def test_run_builds_answer_with_citations() -> None:
     tools = {
         "stackoverflow": _FakeServerTools(
             "stackoverflow",
-            {"so_search": stack_search, "get_content": stack_search},
+            {"search_questions": stack_search, "get_question": stack_search},
         ),
         "wikipedia": _FakeServerTools(
             "wikipedia",

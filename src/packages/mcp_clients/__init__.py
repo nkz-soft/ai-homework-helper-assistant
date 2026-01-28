@@ -4,9 +4,9 @@ from .tool_wrappers import (
     StackOverflowTimeoutError,
     StackOverflowToolResult,
     StackOverflowToolset,
-    get_content,
+    get_content as get_question,
     so_get_content,
-    so_search,
+    so_search as search_questions,
     stackoverflow_tools,
 )
 
@@ -16,8 +16,8 @@ __all__ = [
     "StackOverflowTimeoutError",
     "StackOverflowToolResult",
     "StackOverflowToolset",
-    "get_content",
+    "get_question",
     "so_get_content",
-    "so_search",
+    "search_questions",
     "stackoverflow_tools",
 ]
