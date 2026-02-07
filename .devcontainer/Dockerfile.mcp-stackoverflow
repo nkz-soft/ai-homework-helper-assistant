@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+WORKDIR /opt/stackoverflow-mcp
+
+RUN pip install --no-cache-dir "stackoverflow-fastmcp==0.2.6"
+
+COPY .devcontainer/stackoverflow_mcp_sse.py /opt/stackoverflow-mcp/stackoverflow_mcp_sse.py
+
+ENV MCP_HOST=0.0.0.0
+ENV MCP_PORT=8766
+
+CMD ["python", "/opt/stackoverflow-mcp/stackoverflow_mcp_sse.py"]

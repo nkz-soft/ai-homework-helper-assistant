@@ -53,7 +53,7 @@ class CachingInterceptorTests(unittest.TestCase):
     def test_cache_respects_ttl(self) -> None:
         tool = _FakeToolHandle(
             server_name="stackoverflow",
-            tool_name="so_search",
+            tool_name="search_questions",
             response={"items": []},
         )
         clock_ticks = iter([0.0, 1.0, 6.0, 6.0])
@@ -86,7 +86,7 @@ class CachingInterceptorTests(unittest.TestCase):
     def test_budget_per_server_cap_enforced(self) -> None:
         tool = _FakeToolHandle(
             server_name="stackoverflow",
-            tool_name="so_search",
+            tool_name="search_questions",
             response={"items": []},
         )
         budget = ToolBudgetManager(

@@ -22,9 +22,11 @@
       }
     },
     "stackoverflow": {
-      "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "mcp.stackoverflow.com"]
+      "transport": "sse",
+      "protocol_version": "2024-11-05",
+      "minimal_init": true,
+      "command": "python",
+      "args": ["-m", "stackoverflow_mcp", "--host", "mcp-stackoverflow", "--port", "8766"]
     },
     "textbooks": {
       "transport": "stdio",

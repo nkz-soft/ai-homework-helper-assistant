@@ -96,7 +96,7 @@ def _attach_budget_metadata(
 def _budget_degraded_result(*, ok: bool, reason: str) -> StackOverflowToolResult:
     return {
         "source": "stackoverflow",
-        "tool": "so_search",
+        "tool": "search_questions",
         "ok": ok,
         "items": [],
         "raw": {},

@@ -39,7 +39,7 @@ class _FakeToolHandle:
 class ToolWrappersTests(unittest.TestCase):
     def test_so_search_normalizes_items(self) -> None:
         search_handle = _FakeToolHandle(
-            "so_search",
+            "search_questions",
             {
                 "items": [
                     {
@@ -55,7 +55,7 @@ class ToolWrappersTests(unittest.TestCase):
                 ]
             },
         )
-        content_handle = _FakeToolHandle("get_content", {"items": []})
+        content_handle = _FakeToolHandle("get_question", {"items": []})
         tools = stackoverflow_tools(
             _FakeTools(search_handle=search_handle, content_handle=content_handle)
         )
@@ -63,10 +63,8 @@ class ToolWrappersTests(unittest.TestCase):
         result = so_search(tools, query="foo", tags=["python"], limit=5)
 
         self.assertTrue(result["ok"])
-        self.assertEqual(result["tool"], "so_search")
-        self.assertEqual(
-            search_handle.calls, [{"query": "foo", "tags": ["python"], "limit": 5}]
-        )
+        self.assertEqual(result["tool"], "search_questions")
+        self.assertEqual(search_handle.calls, [{"query": "foo", "limit": 5}])
         self.assertEqual(len(result["items"]), 1)
         item = result["items"][0]
         self.assertEqual(item["question_id"], "123")
@@ -79,9 +77,9 @@ class ToolWrappersTests(unittest.TestCase):
         self.assertTrue(item["accepted"])
 
     def test_so_get_content_handles_list_payload(self) -> None:
-        search_handle = _FakeToolHandle("so_search", {"items": []})
+        search_handle = _FakeToolHandle("search_questions", {"items": []})
         content_handle = _FakeToolHandle(
-            "get_content",
+            "get_question",
             [
                 {
                     "question_id": "99",
@@ -95,13 +93,13 @@ class ToolWrappersTests(unittest.TestCase):
 
         result = so_get_content(tools, question_id="99")
 
-        self.assertEqual(content_handle.calls, [{"question_id": "99"}])
-        self.assertEqual(result["tool"], "get_content")
+        self.assertEqual(content_handle.calls, [{"question_id": 99}])
+        self.assertEqual(result["tool"], "get_question")
         self.assertEqual(result["items"][0]["content"], "content")
 
     def test_raises_on_tool_error_payload(self) -> None:
-        search_handle = _FakeToolHandle("so_search", {"error": "quota"})
-        content_handle = _FakeToolHandle("get_content", {"items": []})
+        search_handle = _FakeToolHandle("search_questions", {"error": "quota"})
+        content_handle = _FakeToolHandle("get_question", {"items": []})
         tools = stackoverflow_tools(
             _FakeTools(search_handle=search_handle, content_handle=content_handle)
         )
@@ -110,8 +108,8 @@ class ToolWrappersTests(unittest.TestCase):
             so_search(tools, query="foo")
 
     def test_raises_on_timeout(self) -> None:
-        search_handle = _FakeToolHandle("so_search", TimeoutError("boom"))
-        content_handle = _FakeToolHandle("get_content", {"items": []})
+        search_handle = _FakeToolHandle("search_questions", TimeoutError("boom"))
+        content_handle = _FakeToolHandle("get_question", {"items": []})
         tools = stackoverflow_tools(
             _FakeTools(search_handle=search_handle, content_handle=content_handle)
         )
@@ -218,8 +216,8 @@ class ToolWrappersTests(unittest.TestCase):
             wikipedia_section(tools, page_id_or_title="Example", section="History")
 
     def test_so_search_rejects_missing_payload(self) -> None:
-        search_handle = _FakeToolHandle("so_search", None)
-        content_handle = _FakeToolHandle("get_content", {"items": []})
+        search_handle = _FakeToolHandle("search_questions", None)
+        content_handle = _FakeToolHandle("get_question", {"items": []})
         tools = stackoverflow_tools(
             _FakeTools(search_handle=search_handle, content_handle=content_handle)
         )
@@ -228,8 +226,8 @@ class ToolWrappersTests(unittest.TestCase):
             so_search(tools, query="foo")
 
     def test_so_search_rejects_invalid_payload_type(self) -> None:
-        search_handle = _FakeToolHandle("so_search", "not-a-mapping")
-        content_handle = _FakeToolHandle("get_content", {"items": []})
+        search_handle = _FakeToolHandle("search_questions", "not-a-mapping")
+        content_handle = _FakeToolHandle("get_question", {"items": []})
         tools = stackoverflow_tools(
             _FakeTools(search_handle=search_handle, content_handle=content_handle)
         )
@@ -303,7 +301,7 @@ class ToolWrappersTests(unittest.TestCase):
 
     def test_stackoverflow_item_omits_invalid_score(self) -> None:
         search_handle = _FakeToolHandle(
-            "so_search",
+            "search_questions",
             {
                 "items": [
                     {
@@ -317,7 +315,7 @@ class ToolWrappersTests(unittest.TestCase):
         tools = stackoverflow_tools(
             _FakeTools(
                 search_handle=search_handle,
-                content_handle=_FakeToolHandle("get_content", {"items": []}),
+                content_handle=_FakeToolHandle("get_question", {"items": []}),
             )
         )
 
@@ -357,9 +355,9 @@ class _FakeTools:
         self._content = content_handle
 
     def handle(self, tool_name: str) -> _FakeToolHandle:
-        if tool_name == "so_search":
+        if tool_name == "search_questions":
             return self._search
-        if tool_name == "get_content":
+        if tool_name == "get_question":
             return self._content
         raise AssertionError(f"Unexpected tool: {tool_name}")
 

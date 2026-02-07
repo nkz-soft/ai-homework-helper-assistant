@@ -19,7 +19,7 @@
     }
   },
   "remoteUser": "vscode",
-  "runServices": ["devcontainer", "mcp-wiki"],
+  "runServices": ["devcontainer", "mcp-wiki", "mcp-stackoverflow"],
   "shutdownAction": "stopCompose",
   "forwardPorts": [8765],
   "portsAttributes": {

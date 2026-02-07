@@ -18,7 +18,7 @@ class _FakeToolHandle:
 
     def call(self, arguments: Mapping[str, Any]) -> Mapping[str, Any]:
         self.calls.append(arguments)
-        if self.tool_name == "so_search":
+        if self.tool_name == "search_questions":
             return {
                 "items": [
                     {"question_id": "1", "title": "First"},
@@ -26,7 +26,7 @@ class _FakeToolHandle:
                     {"title": "No id"},
                 ]
             }
-        if self.tool_name == "get_content":
+        if self.tool_name == "get_question":
             question_id = arguments.get("question_id")
             return {"items": [{"question_id": question_id, "content": "body"}]}
         raise AssertionError(f"Unexpected tool: {self.tool_name}")
@@ -34,13 +34,13 @@ class _FakeToolHandle:
 
 class _FakeTools:
     def __init__(self) -> None:
-        self.search_handle = _FakeToolHandle("so_search")
-        self.content_handle = _FakeToolHandle("get_content")
+        self.search_handle = _FakeToolHandle("search_questions")
+        self.content_handle = _FakeToolHandle("get_question")
 
     def handle(self, tool_name: str) -> _FakeToolHandle:
-        if tool_name == "so_search":
+        if tool_name == "search_questions":
             return self.search_handle
-        if tool_name == "get_content":
+        if tool_name == "get_question":
             return self.content_handle
         raise AssertionError(f"Unexpected tool: {tool_name}")
 
@@ -56,17 +56,15 @@ class RetrievalTests(unittest.TestCase):
             max_items=2,
         )
 
-        self.assertEqual(
-            tools.search.calls, [{"query": "unit test", "tags": ["python"], "limit": 2}]
-        )
+        self.assertEqual(tools.search.calls, [{"query": "unit test", "limit": 2}])
         self.assertEqual(
             tools.get_content.calls,
-            [{"question_id": "1"}, {"question_id": "2"}],
+            [{"question_id": 1}, {"question_id": 2}],
         )
         self.assertEqual(len(results), 3)
-        self.assertEqual(results[0]["tool"], "so_search")
-        self.assertEqual(results[1]["tool"], "get_content")
-        self.assertEqual(results[2]["tool"], "get_content")
+        self.assertEqual(results[0]["tool"], "search_questions")
+        self.assertEqual(results[1]["tool"], "get_question")
+        self.assertEqual(results[2]["tool"], "get_question")
 
     def test_retrieve_stackoverflow_skips_missing_question_id(self) -> None:
         tools = stackoverflow_tools(_FakeTools())
@@ -80,7 +78,7 @@ class RetrievalTests(unittest.TestCase):
 
         self.assertEqual(
             tools.get_content.calls,
-            [{"question_id": "1"}, {"question_id": "2"}],
+            [{"question_id": 1}, {"question_id": 2}],
         )
         self.assertEqual(len(results), 3)
 
@@ -99,7 +97,7 @@ class RetrievalTests(unittest.TestCase):
         self.assertEqual(tools.search.calls, [{"query": "unit test", "limit": 2}])
         self.assertEqual(tools.get_content.calls, [])
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["tool"], "so_search")
+        self.assertEqual(results[0]["tool"], "search_questions")
         self.assertTrue(results[0]["metadata"]["degraded"])
         self.assertEqual(
             results[0]["metadata"]["reason"], "stackoverflow_budget_exhausted"
