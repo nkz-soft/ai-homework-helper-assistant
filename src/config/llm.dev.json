@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "model": "gpt-4o-mini",
-  "base_url": "https://api.openai.com/v1",
-  "api_key": "REPLACE_ME"
+  "model": "$OPENAI_MODEL",
+  "base_url": "$OPENAI_BASE_URL",
+  "api_key": "$OPENAI_API_KEY"
 }

@@ -19,6 +19,16 @@ Next steps:
 - Run the LangGraph pipeline with `packages.orchestrator.graph.build_graph.run`.
 - Start the API with `uvicorn apps.assistant_api.main:app --reload`.
 
+## Configuration
+
+LLM settings are read from environment variables via `src/config/llm.dev.json`
+and `src/config/llm.prod.json`.
+
+Required environment variables:
+- `OPENAI_MODEL`
+- `OPENAI_BASE_URL`
+- `OPENAI_API_KEY`
+
 ## VS Code Dev Container (no local Python)
 
 Use the Dev Containers extension to develop inside Docker without installing
